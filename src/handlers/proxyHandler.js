@@ -150,7 +150,7 @@ async function handleProxyRequest(req, res, next) {
 
         if (contentType.includes('text/html')) {
             // Build proxy base URL from the request
-            const protocol = req.secure ? 'https' : 'http';
+            const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
             const proxyBase = `${protocol}://${req.get('host')}`;
             processedContent = transformHtml(responseBody, finalUrl, proxyBase);
         }
@@ -424,7 +424,7 @@ async function handleResourceRequest(req, res, next) {
             res.removeHeader(header);
         });
 
-        const protocol = req.secure ? 'https' : 'http';
+        const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
         const proxyBase = `${protocol}://${req.get('host')}`;
 
         // For text content, rewrite URLs if it's CSS
