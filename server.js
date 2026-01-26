@@ -35,11 +35,17 @@ const PORT = process.env.PORT || 3000;
 // 1. GLOBAL CORS (Must be first!)
 app.use((req, res, next) => {
     // Reflect the origin to support credentials
-    const origin = req.headers.origin || '*';
-    res.header('Access-Control-Allow-Origin', origin);
+    const origin = req.headers.origin;
+
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID');
-    res.header('Access-Control-Allow-Credentials', 'true');
 
     // Handle Pre-flight requests
     if (req.method === 'OPTIONS') {
