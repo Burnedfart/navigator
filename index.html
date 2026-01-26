@@ -275,20 +275,12 @@
 
     <script src="uv/uv.bundle.js"></script>
     <script src="uv/uv.config.js"></script>
-    <script src="uv/bare-mux.js"></script>
     <script>
         // Register Ultraviolet Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js', { scope: './' })
-                .then(async reg => {
+                .then(reg => {
                     console.log('✅ UV Service Worker registered');
-
-                    // Configure BareMux (High Performance Transport)
-                    if (typeof BareMux !== 'undefined') {
-                        // Initialize the connection with the correct worker path
-                        const connection = new BareMux.BareMuxConnection('/uv/bare-mux-worker.js');
-                        console.log('✅ BareMux connection initialized');
-                    }
                 })
                 .catch(err => {
                     console.error('❌ UV Service Worker registration failed:', err);
