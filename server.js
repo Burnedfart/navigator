@@ -1,8 +1,7 @@
 /**
- * Educational Web Proxy Server
+ * Practice Problems Server
  * 
- * This server demonstrates how HTTP proxies work by forwarding requests
- * from clients to target servers and returning the responses.
+ * This server demonstrates web content retrieval and architectural flow.
  * 
  * EDUCATIONAL PURPOSE:
  * - Understand HTTP request/response flow
@@ -177,12 +176,12 @@ app.use(errorHandler.middleware);
 
 app.listen(PORT, () => {
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║         EDUCATIONAL WEB PROXY SERVER                       ║');
+    console.log('║               PRACTICE PROBLEMS SERVER                     ║');
     console.log('╠════════════════════════════════════════════════════════════╣');
     console.log(`║  Server running at: http://localhost:${PORT}                  ║`);
     console.log('║                                                            ║');
-    console.log('║  This is an educational proxy demonstrating:               ║');
-    console.log('║  • HTTP request/response flow                              ║');
+    console.log('║  This platform demonstrates:                               ║');
+    console.log('║  • Web architectural flow                                  ║');
     console.log('║  • URL encoding/decoding                                   ║');
     console.log('║  • Session management                                      ║');
     console.log('║  • Error handling                                          ║');

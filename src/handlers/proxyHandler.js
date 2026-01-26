@@ -38,7 +38,7 @@ const PROXY_CONFIG = {
     maxResponseSize: 10 * 1024 * 1024, // 10MB
 
     // User agent to identify as (important for some websites)
-    userAgent: 'EducationalProxy/1.0 (Learning Tool)',
+    userAgent: 'PracticeProblems/1.0 (Educational Tool)',
 
     // Headers to forward from client to target
     forwardHeaders: [

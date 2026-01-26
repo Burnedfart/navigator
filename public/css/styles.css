@@ -1,8 +1,7 @@
 /**
- * Educational Web Proxy Styles
+ * Practice Problems Styles
  * 
- * A modern, dark-themed interface that demonstrates professional web design
- * while being educational and easy to understand.
+ * A modern, dark-themed interface for exploring web architecture.
  */
 
 /* ============================================================================
@@ -17,19 +16,19 @@
     --color-bg-tertiary: #1c1c26;
     --color-bg-elevated: #22222e;
     --color-bg-hover: #2a2a38;
-    
+
     /* Accent Colors */
     --color-accent-primary: #6366f1;
     --color-accent-secondary: #818cf8;
     --color-accent-tertiary: #a5b4fc;
     --color-accent-glow: rgba(99, 102, 241, 0.3);
-    
+
     /* Text Colors */
     --color-text-primary: #f4f4f5;
     --color-text-secondary: #a1a1aa;
     --color-text-tertiary: #71717a;
     --color-text-muted: #52525b;
-    
+
     /* Status Colors */
     --color-success: #22c55e;
     --color-success-bg: rgba(34, 197, 94, 0.1);
@@ -39,15 +38,15 @@
     --color-error-bg: rgba(239, 68, 68, 0.1);
     --color-info: #3b82f6;
     --color-info-bg: rgba(59, 130, 246, 0.1);
-    
+
     /* Borders */
     --color-border: rgba(255, 255, 255, 0.08);
     --color-border-hover: rgba(255, 255, 255, 0.15);
-    
+
     /* Typography */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-    
+
     /* Spacing Scale */
     --space-xs: 0.25rem;
     --space-sm: 0.5rem;
@@ -55,19 +54,19 @@
     --space-lg: 1.5rem;
     --space-xl: 2rem;
     --space-2xl: 3rem;
-    
+
     /* Border Radius */
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 14px;
     --radius-xl: 20px;
-    
+
     /* Shadows */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
     --shadow-glow: 0 0 20px var(--color-accent-glow);
-    
+
     /* Transitions */
     --transition-fast: 150ms ease;
     --transition-normal: 250ms ease;
@@ -78,7 +77,9 @@
    BASE STYLES
    ============================================================================ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -357,7 +358,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Encoding Display */
@@ -822,12 +825,12 @@ body {
     .main-content {
         grid-template-columns: 1fr;
     }
-    
+
     .info-panel {
         flex-direction: row;
         overflow-x: auto;
     }
-    
+
     .info-card {
         min-width: 280px;
     }
@@ -838,38 +841,38 @@ body {
         flex-direction: column;
         gap: var(--space-md);
     }
-    
+
     .header-status {
         width: 100%;
         justify-content: space-between;
     }
-    
+
     .main-content {
         padding: var(--space-md);
     }
-    
+
     .input-group {
         flex-direction: column;
     }
-    
+
     .protocol-indicator {
         border-right: none;
         border-bottom: 1px solid var(--color-border);
         justify-content: center;
     }
-    
+
     .fetch-button {
         border-radius: 0 0 var(--radius-md) var(--radius-md);
     }
-    
+
     .info-panel {
         flex-direction: column;
     }
-    
+
     .info-card {
         min-width: auto;
     }
-    
+
     .concepts-grid {
         grid-template-columns: 1fr;
     }
@@ -879,7 +882,7 @@ body {
     .session-info {
         display: none;
     }
-    
+
     .metadata-grid {
         grid-template-columns: 1fr 1fr;
     }

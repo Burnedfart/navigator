@@ -1,13 +1,18 @@
 {
-  "name": "educational-web-proxy",
+  "name": "practice-problems",
   "version": "1.0.0",
-  "description": "An educational web proxy framework demonstrating HTTP request forwarding, URL encoding, and proxy architecture",
+  "description": "Practice problems and web architecture demonstration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["proxy", "educational", "http", "web-development"],
+  "keywords": [
+    "proxy",
+    "educational",
+    "http",
+    "web-development"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {

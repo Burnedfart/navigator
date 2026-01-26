@@ -1,7 +1,7 @@
 /**
- * Educational Web Proxy - Frontend Application
+ * Practice Problems - Frontend Application
  * 
- * This file handles all client-side logic for the proxy interface.
+ * This file handles all client-side logic for the interactive environment.
  * 
  * EDUCATIONAL CONCEPTS DEMONSTRATED:
  * - Fetch API for making HTTP requests
@@ -507,7 +507,7 @@ function handleOpenExternal() {
  * Initializes the application
  */
 async function initialize() {
-    console.log('🚀 Initializing Educational Proxy Frontend');
+    console.log('🚀 Initializing Practice Problems Frontend');
 
     // Check server connection
     const health = await checkServerHealth();

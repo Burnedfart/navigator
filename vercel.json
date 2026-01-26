@@ -1,6 +1,6 @@
 {
     "version": 2,
-    "name": "educational-web-proxy",
+    "name": "practice-problems",
     "builds": [
         {
             "src": "server.js",
