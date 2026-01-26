@@ -298,7 +298,7 @@ function transformHtml(html, baseUrl, proxyBase = '') {
     // Match src="..." or href="..." or src='...' or href='...'
     const attributePatterns = [
         { attr: 'src', regex: /(<[^>]+\ssrc=["'])([^"']+)(["'][^>]*>)/gi },
-        { attr: 'href', regex: /(<link[^>]+\shref=["'])([^"']+)(["'][^>]*>)/gi },
+        { attr: 'href', regex: /(<[^>]+\shref=["'])([^"']+)(["'][^>]*>)/gi },
         { attr: 'action', regex: /(<form[^>]+\saction=["'])([^"']+)(["'][^>]*>)/gi }
     ];
 
@@ -413,6 +413,7 @@ async function handleResourceRequest(req, res, next) {
         });
 
         const contentType = targetResponse.headers.get('content-type') || 'application/octet-stream';
+        const finalUrl = targetResponse.url || targetUrl;
 
         // Set appropriate headers
         res.set('Content-Type', contentType);
@@ -423,27 +424,33 @@ async function handleResourceRequest(req, res, next) {
             res.removeHeader(header);
         });
 
+        const protocol = req.secure ? 'https' : 'http';
+        const proxyBase = `${protocol}://${req.get('host')}`;
+
         // For text content, rewrite URLs if it's CSS
         if (contentType.includes('text/css')) {
             let cssContent = await targetResponse.text();
-            const protocol = req.secure ? 'https' : 'http';
-            const proxyBase = `${protocol}://${req.get('host')}`;
 
             // Rewrite url() in CSS
             cssContent = cssContent.replace(/url\(["']?([^"')]+)["']?\)/gi, (match, url) => {
-                const resolvedUrl = resolveUrl(url.trim(), targetUrl);
+                const resolvedUrl = resolveUrl(url.trim(), finalUrl);
                 if (!resolvedUrl) return match;
                 return `url("${proxyBase}/api/resource?url=${encodeURIComponent(resolvedUrl)}")`;
             });
 
             // Rewrite @import
             cssContent = cssContent.replace(/@import\s+["']([^"']+)["']/gi, (match, url) => {
-                const resolvedUrl = resolveUrl(url.trim(), targetUrl);
+                const resolvedUrl = resolveUrl(url.trim(), finalUrl);
                 if (!resolvedUrl) return match;
                 return `@import "${proxyBase}/api/resource?url=${encodeURIComponent(resolvedUrl)}"`;
             });
 
             res.send(cssContent);
+        } else if (contentType.includes('text/html')) {
+            // Rewrite URLs in HTML resources (for navigation within iframe)
+            let htmlContent = await targetResponse.text();
+            htmlContent = transformHtml(htmlContent, finalUrl, proxyBase);
+            res.send(htmlContent);
         } else if (contentType.includes('javascript') || contentType.includes('text/')) {
             // Send text content directly
             const textContent = await targetResponse.text();
