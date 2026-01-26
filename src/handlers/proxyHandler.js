@@ -111,33 +111,17 @@ async function handleProxyRequest(req, res, next) {
             method: 'GET',
             headers: proxyHeaders,
             timeout: PROXY_CONFIG.timeout,
-            // Important: Don't follow redirects automatically
-            // This lets us rewrite redirect URLs if needed
-            redirect: 'manual'
+            // Follow redirects automatically so users don't see redirect messages
+            redirect: 'follow'
         });
 
         const fetchTime = Date.now() - startTime;
         console.log(`[Proxy] Response received in ${fetchTime}ms - Status: ${targetResponse.status}`);
 
-        // ========================================
-        // STEP 4: Handle redirects
-        // ========================================
-
-        if (targetResponse.status >= 300 && targetResponse.status < 400) {
-            const redirectUrl = targetResponse.headers.get('location');
-            if (redirectUrl) {
-                console.log(`[Proxy] Redirect to: ${redirectUrl}`);
-
-                // Return redirect info to client
-                return res.json({
-                    success: true,
-                    type: 'redirect',
-                    statusCode: targetResponse.status,
-                    redirectUrl: redirectUrl,
-                    explanation: 'The server requested a redirect. The client should fetch the new URL.'
-                });
-            }
-        }
+        // Note: Redirects are now handled automatically via redirect: 'follow'
+        // The final URL after redirects is available via targetResponse.url
+        const finalUrl = targetResponse.url || targetUrl;
+        console.log(`[Proxy] Final URL after redirects: ${finalUrl}`);
 
         // ========================================
         // STEP 5: Process the response
@@ -165,7 +149,10 @@ async function handleProxyRequest(req, res, next) {
         let processedContent = responseBody;
 
         if (contentType.includes('text/html')) {
-            processedContent = transformHtml(responseBody, targetUrl);
+            // Build proxy base URL from the request
+            const protocol = req.secure ? 'https' : 'http';
+            const proxyBase = `${protocol}://${req.get('host')}`;
+            processedContent = transformHtml(responseBody, finalUrl, proxyBase);
         }
 
         // ========================================
@@ -179,8 +166,8 @@ async function handleProxyRequest(req, res, next) {
             success: true,
             type: 'content',
             metadata: {
-                url: targetUrl,
-                domain: extractDomain(targetUrl),
+                url: finalUrl,
+                domain: extractDomain(finalUrl),
                 statusCode: targetResponse.status,
                 contentType: contentType,
                 contentLength: processedContent.length,
@@ -260,36 +247,139 @@ function isProcessableContent(contentType) {
         'application/javascript',
         'application/json',
         'application/xml',
-        'text/xml'
+        'text/xml',
+        'image/',
+        'font/',
+        'application/font',
+        'application/octet-stream'
     ];
 
     return processableTypes.some(type => contentType.includes(type));
 }
 
 /**
- * Transforms HTML content for display through the proxy
- * 
- * EDUCATIONAL NOTE:
- * This is a simplified transformation. A production proxy would need to:
- * - Rewrite all relative URLs to absolute
- * - Proxy JavaScript requests
- * - Handle CSS @import statements
- * - Process srcset attributes
- * - Handle iframes
+ * Resolves a URL relative to a base URL
  */
-function transformHtml(html, baseUrl) {
-    // Add base tag to help resolve relative URLs
-    // This is a simple approach - production proxies use more sophisticated rewriting
+function resolveUrl(url, baseUrl) {
+    try {
+        // Handle protocol-relative URLs
+        if (url.startsWith('//')) {
+            return 'https:' + url;
+        }
+        // Handle data URLs, javascript:, mailto:, etc.
+        if (url.startsWith('data:') || url.startsWith('javascript:') ||
+            url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) {
+            return null; // Don't proxy these
+        }
+        return new URL(url, baseUrl).href;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Creates a proxy URL for a given resource URL
+ */
+function makeProxyUrl(resourceUrl, proxyBase) {
+    if (!resourceUrl) return null;
+    return `${proxyBase}/api/proxy?url=${encodeURIComponent(resourceUrl)}`;
+}
+
+/**
+ * Transforms HTML content for display through the proxy
+ * Rewrites all resource URLs to go through the proxy
+ */
+function transformHtml(html, baseUrl, proxyBase = '') {
+    // First add a base tag for any URLs we miss
     const baseTag = `<base href="${baseUrl}">`;
 
-    // Insert base tag after <head> if present
-    if (html.includes('<head>')) {
-        html = html.replace('<head>', `<head>\n${baseTag}`);
-    } else if (html.includes('<HEAD>')) {
-        html = html.replace('<HEAD>', `<HEAD>\n${baseTag}`);
+    // Rewrite src and href attributes to go through proxy
+    // Match src="..." or href="..." or src='...' or href='...'
+    const attributePatterns = [
+        { attr: 'src', regex: /(<[^>]+\ssrc=["'])([^"']+)(["'][^>]*>)/gi },
+        { attr: 'href', regex: /(<link[^>]+\shref=["'])([^"']+)(["'][^>]*>)/gi },
+        { attr: 'action', regex: /(<form[^>]+\saction=["'])([^"']+)(["'][^>]*>)/gi }
+    ];
+
+    for (const pattern of attributePatterns) {
+        html = html.replace(pattern.regex, (match, prefix, url, suffix) => {
+            const resolvedUrl = resolveUrl(url.trim(), baseUrl);
+            if (!resolvedUrl) return match; // Keep original if can't resolve
+            const proxyUrl = makeProxyUrl(resolvedUrl, proxyBase);
+            return proxyUrl ? `${prefix}${proxyUrl}${suffix}` : match;
+        });
+    }
+
+    // Rewrite srcset attributes (for responsive images)
+    html = html.replace(/(<[^>]+\ssrcset=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, srcset, suffix) => {
+        const rewrittenSrcset = srcset.split(',').map(entry => {
+            const parts = entry.trim().split(/\s+/);
+            if (parts.length >= 1) {
+                const resolvedUrl = resolveUrl(parts[0], baseUrl);
+                if (resolvedUrl) {
+                    const proxyUrl = makeProxyUrl(resolvedUrl, proxyBase);
+                    if (proxyUrl) {
+                        parts[0] = proxyUrl;
+                    }
+                }
+            }
+            return parts.join(' ');
+        }).join(', ');
+        return `${prefix}${rewrittenSrcset}${suffix}`;
+    });
+
+    // Rewrite CSS url() references in style tags and inline styles
+    html = html.replace(/url\(["']?([^"')]+)["']?\)/gi, (match, url) => {
+        const resolvedUrl = resolveUrl(url.trim(), baseUrl);
+        if (!resolvedUrl) return match;
+        const proxyUrl = makeProxyUrl(resolvedUrl, proxyBase);
+        return proxyUrl ? `url("${proxyUrl}")` : match;
+    });
+
+    // Inject a script to intercept fetch/XHR requests
+    const proxyInterceptScript = `
+    <script>
+    (function() {
+        const PROXY_BASE = '${proxyBase}';
+        const BASE_URL = '${baseUrl}';
+        
+        // Helper to resolve and proxy URLs
+        function proxyUrl(url) {
+            try {
+                if (url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('blob:')) {
+                    return url;
+                }
+                const resolved = new URL(url, BASE_URL).href;
+                return PROXY_BASE + '/api/proxy?url=' + encodeURIComponent(resolved);
+            } catch(e) {
+                return url;
+            }
+        }
+        
+        // Intercept fetch
+        const originalFetch = window.fetch;
+        window.fetch = function(resource, init) {
+            if (typeof resource === 'string') {
+                resource = proxyUrl(resource);
+            } else if (resource instanceof Request) {
+                resource = new Request(proxyUrl(resource.url), resource);
+            }
+            return originalFetch.call(this, resource, init);
+        };
+        
+        // Intercept XMLHttpRequest
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...args) {
+            return originalOpen.call(this, method, proxyUrl(url), ...args);
+        };
+    })();
+    </script>`;
+
+    // Insert base tag and intercept script after <head>
+    if (html.match(/<head[^>]*>/i)) {
+        html = html.replace(/<head[^>]*>/i, `$&\n${baseTag}\n${proxyInterceptScript}`);
     } else {
-        // Prepend if no head tag
-        html = baseTag + '\n' + html;
+        html = baseTag + '\n' + proxyInterceptScript + '\n' + html;
     }
 
     return html;

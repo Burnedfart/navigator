@@ -432,37 +432,9 @@ async function handleFormSubmit(event) {
         const proxyResult = await fetchThroughProxy(url);
 
         if (proxyResult.success) {
-            if (proxyResult.type === 'redirect') {
-                // Handle redirects
-                updateMetadata({
-                    statusCode: proxyResult.statusCode,
-                    domain: new URL(proxyResult.redirectUrl).hostname,
-                    contentType: 'redirect',
-                    contentLength: 0,
-                    fetchTimeMs: 0
-                });
-
-                // Show redirect info
-                displayContent(`
-                    <html>
-                    <head><style>
-                        body { font-family: Inter, sans-serif; padding: 40px; background: #1a1a2e; color: #fff; }
-                        h2 { color: #6366f1; }
-                        code { background: #22222e; padding: 8px 16px; border-radius: 6px; display: block; margin: 16px 0; }
-                    </style></head>
-                    <body>
-                        <h2>🔄 Redirect Detected</h2>
-                        <p>The server requested a redirect to:</p>
-                        <code>${proxyResult.redirectUrl}</code>
-                        <p style="color: #a1a1aa;">In a full proxy implementation, this redirect would be followed automatically.</p>
-                    </body>
-                    </html>
-                `);
-            } else {
-                // Display content
-                updateMetadata(proxyResult.metadata);
-                displayContent(proxyResult.content);
-            }
+            // Display content directly - redirects are now handled server-side
+            updateMetadata(proxyResult.metadata);
+            displayContent(proxyResult.content);
         } else {
             displayError(proxyResult.error);
         }
