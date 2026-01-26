@@ -60,18 +60,32 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(':method :url :status :response-time ms - :res[content-length]'));
 
-// 3. Session Management
-app.use(sessionManager.middleware);
-
+// 3. Static Files (Serve these BEFORE session management to avoid overhead)
 // ============================================================================
-// STATIC FILES - Serve Ultraviolet client files
-// ============================================================================
-
-// Serve UV static files from node_modules
-app.use('/uv/', express.static(path.join(__dirname, 'node_modules', '@titaniumnetwork-dev', 'ultraviolet', 'dist')));
 
 // Serve our custom UV config (overrides the default)
-app.use('/uv/', express.static(path.join(__dirname, 'uv')));
+app.get('/uv/uv.config.js', (req, res) => {
+    const filePath = path.join(__dirname, 'uv', 'uv.config.js');
+    console.log('[UV] Serving config from:', filePath);
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(filePath);
+});
+
+// Serve UV static files from node_modules (Manual fallback)
+app.get('/uv/:file', (req, res) => {
+    const filename = req.params.file;
+    const filePath = path.join(__dirname, 'node_modules', '@titaniumnetwork-dev', 'ultraviolet', 'dist', filename);
+
+    console.log(`[UV] Serving ${filename} from:`, filePath);
+
+    if (require('fs').existsSync(filePath)) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.sendFile(filePath);
+    } else {
+        console.error(`[UV] File not found: ${filePath}`);
+        res.status(404).send('File not found');
+    }
+});
 
 // Serve the service worker at root
 app.get('/sw.js', (req, res) => {
@@ -80,6 +94,10 @@ app.get('/sw.js', (req, res) => {
 
 // Serve our static frontend
 app.use(express.static(path.join(__dirname, './')));
+
+// ============================================================================
+// 4. Session Management
+app.use(sessionManager.middleware);
 
 // ============================================================================
 // API ENDPOINTS
@@ -120,6 +138,17 @@ app.post('/api/decode', (req, res) => {
 app.get('/api/proxy', proxyHandler.handleProxyRequest);
 app.post('/api/proxy', proxyHandler.handleProxyRequest);
 app.get('/api/resource', proxyHandler.handleResourceRequest);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        sessionId: req.sessionId
+    });
+});
+
+
 
 // ============================================================================
 // BARE SERVER ROUTING (for Ultraviolet)

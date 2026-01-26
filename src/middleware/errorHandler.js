@@ -253,6 +253,11 @@ function middleware(err, req, res, next) {
         errorResponse.error.stack = err.stack.split('\n');
     }
 
+    // If headers are already sent, delegate to default Express error handler
+    if (res.headersSent) {
+        return next(err);
+    }
+
     res.status(statusCode).json(errorResponse);
 }
 

@@ -207,7 +207,9 @@ function middleware(req, res, next) {
     req.session = session;
 
     // Add session ID to response headers
-    res.set(SESSION_CONFIG.headerName, sessionId);
+    if (!res.headersSent) {
+        res.set(SESSION_CONFIG.headerName, sessionId);
+    }
 
     next();
 }

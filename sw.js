@@ -11,6 +11,12 @@ const uv = new UVServiceWorker();
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         (async () => {
+            // Bypass UV for static UV files and API endpoints
+            const url = new URL(event.request.url);
+            if (url.pathname.startsWith('/uv/') || url.pathname.startsWith('/api/')) {
+                return await fetch(event.request);
+            }
+
             // Check if this request should be handled by UV
             if (uv.route(event)) {
                 return await uv.fetch(event);
