@@ -373,6 +373,51 @@ function transformHtml(html, baseUrl, proxyBase = '') {
         XMLHttpRequest.prototype.open = function(method, url, ...args) {
             return originalOpen.call(this, method, proxyUrl(url), ...args);
         };
+
+        // Intercept DOM property setters
+        const elementDescriptors = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
+        
+        // Helper to patch property properties
+        function patchProperty(prototype, property) {
+            const descriptor = Object.getOwnPropertyDescriptor(prototype, property);
+            if (descriptor && descriptor.set) {
+                Object.defineProperty(prototype, property, {
+                    get: descriptor.get,
+                    set: function(value) {
+                       if (typeof value === 'string' && value.trim() !== '') {
+                           try {
+                               // Don't double-proxy
+                               if (!value.includes(PROXY_BASE)) {
+                                   value = proxyUrl(value);
+                               }
+                           } catch(e) {}
+                       }
+                       return descriptor.set.call(this, value);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+            }
+        }
+
+        // Patch common URL properties
+        if (window.HTMLImageElement) patchProperty(HTMLImageElement.prototype, 'src');
+        if (window.HTMLScriptElement) patchProperty(HTMLScriptElement.prototype, 'src');
+        if (window.HTMLLinkElement) patchProperty(HTMLLinkElement.prototype, 'href');
+        if (window.HTMLAnchorElement) patchProperty(HTMLAnchorElement.prototype, 'href');
+        if (window.HTMLMediaElement) patchProperty(HTMLMediaElement.prototype, 'src');
+        if (window.HTMLSourceElement) patchProperty(HTMLSourceElement.prototype, 'src');
+
+        // Intercept setAttribute
+        const originalSetAttribute = Element.prototype.setAttribute;
+        Element.prototype.setAttribute = function(name, value) {
+            if ((name === 'src' || name === 'href' || name === 'action') && typeof value === 'string') {
+                if (!value.includes(PROXY_BASE)) {
+                    value = proxyUrl(value);
+                }
+            }
+            return originalSetAttribute.call(this, name, value);
+        };
     })();
     </script>`;
 
