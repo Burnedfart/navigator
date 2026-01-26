@@ -269,12 +269,12 @@
         </footer>
     </div>
 
-    <script src="/uv/uv.bundle.js"></script>
-    <script src="/uv/uv.config.js"></script>
+    <script src="uv/uv.bundle.js"></script>
+    <script src="uv/uv.config.js"></script>
     <script>
         // Register Ultraviolet Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then(reg => {
                     console.log('✅ UV Service Worker registered');
                 })

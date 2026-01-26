@@ -187,19 +187,21 @@ app.use(errorHandler.middleware);
 // SERVER STARTUP
 // ============================================================================
 
-server.listen(PORT, () => {
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║          ULTRAVIOLET PROXY SERVER                          ║');
-    console.log('╠════════════════════════════════════════════════════════════╣');
-    console.log(`║  Server running at: http://localhost:${PORT}                  ║`);
-    console.log('║                                                            ║');
-    console.log('║  Features:                                                 ║');
-    console.log('║  • Bare Server at /bare/                                   ║');
-    console.log('║  • Ultraviolet client at /uv/                              ║');
-    console.log('║  • WebSocket support for YouTube/Discord                   ║');
-    console.log('║  • Full site compatibility                                 ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
-});
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log('╔════════════════════════════════════════════════════════════╗');
+        console.log('║          ULTRAVIOLET PROXY SERVER                          ║');
+        console.log('╠════════════════════════════════════════════════════════════╣');
+        console.log(`║  Server running at: http://localhost:${PORT}                  ║`);
+        console.log('║                                                            ║');
+        console.log('║  Features:                                                 ║');
+        console.log('║  • Bare Server at /bare/                                   ║');
+        console.log('║  • Ultraviolet client at /uv/                              ║');
+        console.log('║  • WebSocket support for YouTube/Discord                   ║');
+        console.log('║  • Full site compatibility                                 ║');
+        console.log('╚════════════════════════════════════════════════════════════╝');
+    });
+}
 
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
@@ -208,4 +210,4 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
-module.exports = { app, server };
+module.exports = app;

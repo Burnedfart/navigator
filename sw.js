@@ -2,9 +2,9 @@
  * Ultraviolet Service Worker Registration Handler
  * This SW intercepts all requests and routes them through Ultraviolet
  */
-importScripts('/uv/uv.bundle.js');
-importScripts('/uv/uv.config.js');
-importScripts('/uv/uv.sw.js');
+importScripts('uv/uv.bundle.js');
+importScripts('uv/uv.config.js');
+importScripts('uv/uv.sw.js');
 
 const uv = new UVServiceWorker();
 
