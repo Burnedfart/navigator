@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Web Proxy - Learn HTTP Protocols</title>
+    <meta name="description" content="An educational tool for developers to learn about HTTP proxy architecture, URL encoding, and request forwarding.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Educational Proxy</h1>
+                        <span class="tagline">Learn HTTP Protocols</span>
+                    </div>
+                </div>
+                <div class="header-status">
+                    <div class="status-indicator" id="serverStatus">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Checking...</span>
+                    </div>
+                    <div class="session-info" id="sessionInfo">
+                        <span class="session-label">Session:</span>
+                        <code class="session-id">--</code>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- URL Input Section -->
+            <section class="input-section">
+                <div class="input-card">
+                    <h2>Fetch a URL</h2>
+                    <p class="input-description">
+                        Enter a URL to fetch through the proxy. Watch how HTTP requests flow through intermediary servers.
+                    </p>
+                    
+                    <form id="proxyForm" class="proxy-form">
+                        <div class="input-group">
+                            <div class="protocol-indicator" id="protocolIndicator">
+                                <span>https://</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="urlInput" 
+                                class="url-input" 
+                                placeholder="example.com"
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+                            <button type="submit" class="fetch-button" id="fetchButton">
+                                <span class="button-text">Fetch</span>
+                                <span class="button-loading">
+                                    <svg class="spinner" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="3"/>
+                                    </svg>
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Encoding Display -->
+                    <div class="encoding-display" id="encodingDisplay">
+                        <div class="encoding-header">
+                            <span class="encoding-label">URL Encoding</span>
+                            <button class="toggle-encoding" id="toggleEncoding">
+                                <span>Show Details</span>
+                            </button>
+                        </div>
+                        <div class="encoding-details" id="encodingDetails">
+                            <div class="encoding-row">
+                                <span class="encoding-key">Original:</span>
+                                <code class="encoding-value" id="originalUrl">--</code>
+                            </div>
+                            <div class="encoding-row">
+                                <span class="encoding-key">Encoded:</span>
+                                <code class="encoding-value" id="encodedUrl">--</code>
+                            </div>
+                            <p class="encoding-explanation">
+                                URLs are Base64 encoded for safe transmission. This prevents issues with 
+                                special characters and demonstrates a common web encoding technique.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <!-- Metadata Panel -->
+                <div class="metadata-panel" id="metadataPanel">
+                    <div class="panel-header">
+                        <h3>Response Metadata</h3>
+                        <button class="panel-toggle" id="toggleMetadata">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="panel-content" id="metadataContent">
+                        <div class="metadata-grid">
+                            <div class="metadata-item">
+                                <span class="metadata-label">Status</span>
+                                <span class="metadata-value" id="metaStatus">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Domain</span>
+                                <span class="metadata-value" id="metaDomain">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Content Type</span>
+                                <span class="metadata-value" id="metaContentType">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Size</span>
+                                <span class="metadata-value" id="metaSize">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Fetch Time</span>
+                                <span class="metadata-value" id="metaTime">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Display -->
+                <div class="content-display" id="contentDisplay">
+                    <div class="content-header">
+                        <div class="content-tabs">
+                            <button class="tab-button active" data-tab="rendered">Rendered</button>
+                            <button class="tab-button" data-tab="source">Source</button>
+                        </div>
+                        <div class="content-actions">
+                            <button class="action-button" id="copySource" title="Copy source">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                            </button>
+                            <button class="action-button" id="openExternal" title="Open in new tab">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                                    <polyline points="15,3 21,3 21,9"/>
+                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="content-body">
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M8 12h8M12 8v8"/>
+                                </svg>
+                            </div>
+                            <h3>No Content Yet</h3>
+                            <p>Enter a URL above and click "Fetch" to see proxied content</p>
+                        </div>
+
+                        <!-- Rendered Content (iframe) -->
+                        <div class="tab-content active" id="renderedTab">
+                            <iframe id="contentFrame" sandbox="allow-same-origin" title="Proxied content"></iframe>
+                        </div>
+
+                        <!-- Source Code View -->
+                        <div class="tab-content" id="sourceTab">
+                            <pre class="source-code"><code id="sourceCode"></code></pre>
+                        </div>
+
+                        <!-- Error Display -->
+                        <div class="error-display" id="errorDisplay">
+                            <div class="error-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                            </div>
+                            <h3 class="error-title" id="errorTitle">Error</h3>
+                            <p class="error-message" id="errorMessage">Something went wrong</p>
+                            <div class="error-details" id="errorDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Educational Info Panel -->
+            <aside class="info-panel">
+                <div class="info-card">
+                    <h3>📚 How This Proxy Works</h3>
+                    <div class="info-content">
+                        <div class="info-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>You submit a URL</strong>
+                                <p>The URL is encoded and sent to our proxy server</p>
+                            </div>
+                        </div>
+                        <div class="info-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Proxy forwards request</strong>
+                                <p>Our server fetches content from the target website</p>
+                            </div>
+                        </div>
+                        <div class="info-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Response processing</strong>
+                                <p>Headers are modified and content is transformed</p>
+                            </div>
+                        </div>
+                        <div class="info-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>Content displayed</strong>
+                                <p>The proxied content appears in the viewer below</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>🔧 Technical Concepts</h3>
+                    <div class="concepts-grid">
+                        <div class="concept">
+                            <span class="concept-title">URL Encoding</span>
+                            <span class="concept-desc">Safe data transmission</span>
+                        </div>
+                        <div class="concept">
+                            <span class="concept-title">HTTP Headers</span>
+                            <span class="concept-desc">Request/response metadata</span>
+                        </div>
+                        <div class="concept">
+                            <span class="concept-title">Sessions</span>
+                            <span class="concept-desc">Stateful connections</span>
+                        </div>
+                        <div class="concept">
+                            <span class="concept-title">CORS</span>
+                            <span class="concept-desc">Cross-origin requests</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Educational Web Proxy Framework • For learning HTTP protocols and proxy architecture</p>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
