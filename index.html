@@ -37,12 +37,14 @@
 
                     // 4. Load Core Libraries after isolation/SW is ready
                     console.log('📦 [INIT] Loading core libraries...');
+                    // Helper to load scripts with cross-origin attributes for CORP support
                     const loadScript = (src, fallbackSrc) => new Promise((resolve, reject) => {
                         const s = document.createElement('script');
                         s.src = src;
+                        s.crossOrigin = "anonymous"; // CRITICAL: Required for COOP/COEP environments
                         s.onload = () => {
                             console.log(`✅ [INIT] Loaded: ${src}`);
-                            resolve(true); // Success
+                            resolve(true);
                         };
                         s.onerror = async (e) => {
                             console.warn(`⚠️ [INIT] Failed to load local: ${src}`, e);
@@ -385,15 +387,16 @@
                 // Attempt additional fallbacks if initial load failed
                 const scramjetCandidates = [
                     new URL("./lib/scramjet/scramjet.all.js", window.APP_BASE_URL).href,
-                    // Use jsDelivr for GitHub because it supports CORP headers required for SharedArrayBuffer
                     'https://cdn.jsdelivr.net/gh/MercuryWorkshop/scramjet@2.0.0-alpha/dist/scramjet.all.js',
-                    'https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2.0.0-alpha/dist/scramjet.all.js'
+                    'https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2.0.0-alpha/dist/scramjet.all.js',
+                    'https://esm.sh/@mercuryworkshop/scramjet@2.0.0-alpha/dist/scramjet.all.js' // Additional backup
                 ];
                 for (const src of scramjetCandidates) {
                     try {
                         await new Promise((resolve, reject) => {
                             const s = document.createElement('script');
                             s.src = src;
+                            s.crossOrigin = "anonymous"; // CRITICAL for COOP/COEP
                             s.onload = resolve;
                             s.onerror = reject;
                             document.head.appendChild(s);

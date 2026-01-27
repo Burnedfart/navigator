@@ -62,7 +62,9 @@ async function handleRequest(event) {
     const url = event.request.url;
 
     // Failsafe: if scramjet failed to initialize, fall back to network immediately
+    // CRITICAL: Do not attempt to process lib files or config if scramjet is not ready
     if (!scramjet) {
+        console.warn(`SW: ⚠️ Scramjet not ready. Passing through: ${url}`);
         return fetch(event.request);
     }
 
