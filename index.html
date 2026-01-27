@@ -9,7 +9,7 @@
         content="A platform for students and developers to practice coding problems and explore web architecture.">
     <!-- CSP for GitHub Pages and Static Deployment -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http://147.224.9.78:3000; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https: wss: http://147.224.9.78:3000;">
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:;">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -280,7 +280,7 @@
         // Initialize Bare-Mux Transport and Register Ultraviolet Service Worker
         // Using bare-as-module3 for cross-origin Bare server support (GitHub Pages → Vercel)
 
-        const bareServerUrl = 'http://147.224.9.78:3000/bare/';
+        const bareServerUrl = 'https://my-site.boxathome.net/bare/';
 
         // Calculate the base path for GitHub Pages subdirectory support
         // This converts "./uv/file.js" style paths to "/web-dev-learing/uv/file.js" style absolute paths
