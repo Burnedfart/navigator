@@ -81,7 +81,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+        rel="stylesheet" crossorigin="anonymous">
 </head>
 
 <body>
@@ -349,7 +349,14 @@
             console.log('🔧 [MAIN] Starting proxy initialization...');
             console.log('🔒 [MAIN] Cross-Origin Isolated:', window.crossOriginIsolated);
 
-            const { ScramjetController } = $scramjetLoadController();
+            // Scramjet 2.0.0-alpha uses __scramjet$bundle global
+            const scramjetBundle = window.__scramjet$bundle;
+            if (!scramjetBundle) {
+                console.error('❌ [MAIN] Scramjet bundle not found! __scramjet$bundle is undefined.');
+                return;
+            }
+
+            const { ScramjetController } = scramjetBundle;
 
             window.scramjet = new ScramjetController({
                 prefix: window.SCRAMJET_PREFIX,
@@ -407,8 +414,6 @@
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeProxy);
-        } else {
-            initializeProxy();
         }
     </script>
     <script src="js/app.js"></script>

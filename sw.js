@@ -19,91 +19,104 @@ const baseURL = swLocation.substring(0, swLocation.lastIndexOf('/') + 1);
 const prefix = new URL("lib/scramjet/", baseURL).pathname;
 console.log('SW: 🔧 Computed prefix:', prefix);
 
-const { ScramjetServiceWorker } = $scramjetLoadWorker();
-const scramjet = new ScramjetServiceWorker({
-    prefix: prefix,
-    wisp: (self.location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net/wisp/",
-    transport: {
-        path: new URL("./lib/libcurl/index.mjs", baseURL).href,
-    },
-    files: {
-        wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", baseURL).href,
-        all: new URL("./lib/scramjet/scramjet.all.js", baseURL).href,
-        sync: new URL("./lib/scramjet/scramjet.sync.js", baseURL).href,
-    }
-});
+// Scramjet 2.0.0-alpha uses __scramjet$bundle global
+const scramjetBundle = self.__scramjet$bundle;
+let scramjet;
+
+if (scramjetBundle) {
+    const { ScramjetServiceWorker } = scramjetBundle;
+    scramjet = new ScramjetServiceWorker({
+        prefix: prefix,
+        wisp: (self.location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net/wisp/",
+        transport: {
+            path: new URL("./lib/libcurl/index.mjs", baseURL).href,
+        },
+        files: {
+            wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", baseURL).href,
+            all: new URL("./lib/scramjet/scramjet.all.js", baseURL).href,
+            sync: new URL("./lib/scramjet/scramjet.sync.js", baseURL).href,
+        }
+    });
+} else {
+    console.error('SW: ❌ Scramjet bundle not found! __scramjet$bundle is undefined.');
+}
 
 async function handleRequest(event) {
     const url = event.request.url;
-    console.log(`SW: 🔍 Intercepted: ${url}`);
 
-    // Ensure config is loaded
-    await scramjet.loadConfig();
-
-    let response;
-    const isRouted = scramjet.route(event);
-    console.log(`SW: 🤖 Routing decision: ${isRouted ? 'PROXY' : 'NETWORK'} for ${url}`);
-
-    const urlObj = new URL(url);
-    const path = urlObj.pathname;
-
-    // Explicit debug of routing logic
-    const manualMatch = path.startsWith(prefix);
-    console.log(`SW: 🧐 Routing Check:`);
-    console.log(`    Prefix:  '${prefix}'`);
-    console.log(`    Path:    '${path}'`);
-    console.log(`    Match?:  ${manualMatch}`);
-    console.log(`    Scramjet.route(): ${isRouted}`);
-
-    if (isRouted || manualMatch) {
-        if (!isRouted && manualMatch) {
-            console.warn("SW: ⚠️ Scramjet.route() returned false but manual check passed! Forcing proxy.");
-        }
-        try {
-            response = await scramjet.fetch(event);
-            console.log(`SW: ✅ Proxied response for ${url}`);
-        } catch (err) {
-            console.error(`SW: ❌ Proxy fetch failed for ${url}:`, err);
-            // Return the error to the user so we can see it!
-            response = new Response(
-                `<h1>Proxy Error</h1>
-                <p>Failed to fetch: ${url}</p>
-                <pre>${err.toString()}\n${err.stack || ''}</pre>
-                <p>Check console for more details.</p>`,
-                {
-                    status: 500,
-                    headers: { 'Content-Type': 'text/html' }
-                }
-            );
-        }
-    } else {
-        response = await fetch(event.request);
+    // Failsafe: if scramjet failed to initialize, fall back to network immediately
+    if (!scramjet) {
+        return fetch(event.request);
     }
 
-    // Inject COOP/COEP headers into EVERY response
-    const newHeaders = new Headers(response.headers);
-    newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-    console.log(`SW: 🔒 Injected isolation headers for ${url}`);
-
-    // Safety check for status code (0 is invalid for Response constructor)
-    const status = response.status === 0 ? 200 : response.status;
-
     try {
-        return new Response(response.body, {
-            status: status,
-            statusText: response.statusText,
-            headers: newHeaders,
-        });
-    } catch (err) {
-        console.warn(`SW: ⚠️ Failed to wrap response for ${url} (possibly opaque), returning original:`, err);
-        return response;
+        // Ensure config is loaded (wrapped in try/catch to prevent SW crash)
+        try {
+            await scramjet.loadConfig();
+        } catch (configErr) {
+            console.warn(`SW: ⚠️ Failed to load config for ${url}, falling back to network:`, configErr);
+            return fetch(event.request);
+        }
+
+        const isRouted = scramjet.route(event);
+        console.log(`SW: 🤖 Routing decision: ${isRouted ? 'PROXY' : 'NETWORK'} for ${url}`);
+
+        const urlObj = new URL(url);
+        const path = urlObj.pathname;
+        const manualMatch = path.startsWith(prefix);
+
+        if (isRouted || manualMatch) {
+            try {
+                const response = await scramjet.fetch(event);
+
+                // Inject COOP/COEP headers into proxied response
+                const newHeaders = new Headers(response.headers);
+                newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+                return new Response(response.body, {
+                    status: response.status === 0 ? 200 : response.status,
+                    statusText: response.statusText,
+                    headers: newHeaders,
+                });
+            } catch (proxyErr) {
+                console.error(`SW: ❌ Proxy fetch failed for ${url}:`, proxyErr);
+                // Return a clear error response instead of crashing
+                return new Response(
+                    `<h1>Proxy Error</h1><p>Failed to fetch: ${url}</p><pre>${proxyErr.toString()}</pre>`,
+                    { status: 500, headers: { 'Content-Type': 'text/html' } }
+                );
+            }
+        }
+
+        // Standard network request
+        const response = await fetch(event.request);
+
+        // Inject COOP/COEP headers into EVERY response (needed for SharedArrayBuffer)
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+        newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+        try {
+            return new Response(response.body, {
+                status: response.status === 0 ? 200 : response.status,
+                statusText: response.statusText,
+                headers: newHeaders,
+            });
+        } catch (wrapErr) {
+            // Opaque responses cannot be wrapped
+            return response;
+        }
+    } catch (globalErr) {
+        console.error(`SW: 💥 Fatal error handling ${url}:`, globalErr);
+        return fetch(event.request);
     }
 }
 
 self.addEventListener("fetch", (event) => {
     event.respondWith(handleRequest(event));
 });
+
 
 self.addEventListener("message", async (event) => {
     if (event.data && event.data.type === 'config') {
