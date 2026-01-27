@@ -45,6 +45,9 @@ if (scramjetBundle) {
     scramjet = new ScramjetServiceWorker({
         prefix: prefix,
         wisp: (self.location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/",
+        transport: {
+            path: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.9/dist/index.mjs"
+        },
         files: {
             wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", baseURL).href,
             all: new URL("./lib/scramjet/scramjet.all.js", baseURL).href,
