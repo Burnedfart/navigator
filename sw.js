@@ -17,10 +17,25 @@ const scramjet = new ScramjetServiceWorker();
 
 async function handleRequest(event) {
     await scramjet.loadConfig();
+
+    // Check if we need to route via Scramjet
     if (scramjet.route(event)) {
         return scramjet.fetch(event);
     }
-    return fetch(event.request);
+
+    // Normal fetch implementation with COOP/COEP injection
+    const response = await fetch(event.request);
+
+    // Create a new response with the same body and status
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+    });
 }
 
 self.addEventListener("fetch", (event) => {

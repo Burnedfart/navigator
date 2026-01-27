@@ -3,7 +3,22 @@
 
 <head>
     <!-- Cross-Origin Isolation for High Performance Proxying -->
-    <script src="https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js"></script>
+    <!-- Cross-Origin Isolation for High Performance Proxying -->
+    <script>
+        if (!window.crossOriginIsolated && window.isSecureContext) {
+            console.log('🔄 [MAIN] Reloading for Cross-Origin Isolation...');
+            // Reload to let Service Worker inject headers
+            // Only reload once to avoid infinite loops if SW fails
+            if (!sessionStorage.getItem('coi_reloaded')) {
+                sessionStorage.setItem('coi_reloaded', 'true');
+                window.location.reload();
+            } else {
+                console.error('❌ [MAIN] Failed to achieve Cross-Origin Isolation after reload.');
+            }
+        } else {
+            sessionStorage.removeItem('coi_reloaded');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Practice Problems - Educational Tools</title>
