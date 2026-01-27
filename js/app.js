@@ -430,12 +430,6 @@ async function handleFormSubmit(event) {
                 elements.contentFrame.style.display = 'none';
             }
 
-            // Remove any existing scramjet frame
-            const existingFrame = document.getElementById('sj-frame');
-            if (existingFrame) {
-                existingFrame.remove();
-            }
-
             // Update metadata with basic info
             updateMetadata({
                 statusCode: 200,
@@ -445,16 +439,24 @@ async function handleFormSubmit(event) {
                 fetchTimeMs: 0
             });
 
-            // Create Scramjet frame and navigate
-            const frame = window.scramjet.createFrame();
-            frame.frame.id = 'sj-frame';
-            frame.frame.style.cssText = 'width: 100%; height: 100%; border: none;';
+            // Create iframe manually instead of using Scramjet's createFrame
+            const existingFrame = document.getElementById('sj-frame');
+            if (existingFrame) {
+                existingFrame.remove();
+            }
+
+            const iframe = document.createElement('iframe');
+            iframe.id = 'sj-frame';
+            iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
 
             // Append to rendered tab
-            elements.renderedTab.appendChild(frame.frame);
+            elements.renderedTab.appendChild(iframe);
 
-            // Navigate to URL - Pass full URL to Scramjet
-            frame.go(url);
+            // Manually construct Scramjet URL - Scramjet expects just the bare URL without encoding
+            // The Service Worker will handle the encoding
+            const scramjetUrl = window.location.origin + window.SCRAMJET_PREFIX + url;
+            console.log('🔗 Navigating to:', scramjetUrl);
+            iframe.src = scramjetUrl;
 
             // Show the rendered content
             elements.emptyState?.classList.add('hidden');
