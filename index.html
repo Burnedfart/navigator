@@ -295,13 +295,27 @@
             }
 
             try {
-                // 1. Register the service worker
-                const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                // 1. Unregister existing service workers to prevent conflicts
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+
+                // 2. Register the service worker
+                const reg = await navigator.serviceWorker.register('./sw.js', {
+                    scope: './',
+                    updateViaCache: 'none'
+                });
                 console.log('✅ UV Service Worker registered');
 
-                // 2. Wait for the service worker to be ready
+                // 3. Wait for the service worker to be ready
                 await navigator.serviceWorker.ready;
-                console.log('✅ Service Worker is ready');
+                if (navigator.serviceWorker.controller) {
+                    console.log('✅ Service Worker is controlling the page');
+                } else {
+                    console.log('⚠️ Service Worker registered but not controlling. Reloading...');
+                    // location.reload(); // Optional: force reload
+                }
 
                 // 3. Set up Bare-Mux connection with the SharedWorker
                 // bare-mux requires absolute paths starting with /
