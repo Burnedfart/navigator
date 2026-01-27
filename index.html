@@ -316,10 +316,10 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
                     "://my-site.boxathome.net/wisp/";
 
-                window.bareMuxConnection = new BareMux.BareMuxConnection("https://unpkg.com/@mercuryworkshop/bare-mux@latest/dist/worker.js");
+                window.bareMuxConnection = new BareMux.BareMuxConnection("https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@latest/dist/worker.js");
 
                 // Set libcurl transport with WISP endpoint
-                await window.bareMuxConnection.setTransport("https://unpkg.com/@mercuryworkshop/libcurl-transport@latest/index.mjs", [
+                await window.bareMuxConnection.setTransport("https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport@latest/index.mjs", [
                     { websocket: wispUrl }
                 ]);
 
