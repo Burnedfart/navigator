@@ -25,7 +25,7 @@ const CONFIG = {
     // API Base URL for the proxy backend (Oracle Cloud)
     API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? ''
-        : 'https://my-site.boxathome.net'
+        : 'https://my-site.boxathome.net:3000'
 };
 
 const state = {
