@@ -439,24 +439,21 @@ async function handleFormSubmit(event) {
                 fetchTimeMs: 0
             });
 
-            // Create iframe manually instead of using Scramjet's createFrame
+            // Use Scramjet's official API which handles encoding properly
             const existingFrame = document.getElementById('sj-frame');
             if (existingFrame) {
                 existingFrame.remove();
             }
 
-            const iframe = document.createElement('iframe');
-            iframe.id = 'sj-frame';
-            iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+            const frame = window.scramjet.createFrame();
+            frame.frame.id = 'sj-frame';
+            frame.frame.style.cssText = 'width: 100%; height: 100%; border: none;';
 
             // Append to rendered tab
-            elements.renderedTab.appendChild(iframe);
+            elements.renderedTab.appendChild(frame.frame);
 
-            // Manually construct Scramjet URL with full protocol
-            // The SW extracts the URL from the path and proxies it
-            const scramjetUrl = window.location.origin + window.SCRAMJET_PREFIX + url;
-            console.log('🔗 Navigating to:', scramjetUrl);
-            iframe.src = scramjetUrl;
+            // Use Scramjet's go() method - it properly encodes the URL with the codec
+            frame.go(url);
 
             // Show the rendered content
             elements.emptyState?.classList.add('hidden');
@@ -474,7 +471,7 @@ async function handleFormSubmit(event) {
             }
 
             // Update encoding display
-            updateEncodingDisplay(url, iframe.src);
+            updateEncodingDisplay(url, frame.frame.src);
 
         } else {
             throw new Error('Scramjet not initialized. Please refresh the page.');
