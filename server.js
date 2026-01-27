@@ -91,7 +91,7 @@ function shutdown() {
 }
 
 // Start server
-const PORT = parseInt(process.env.PORT || "8080");
+const PORT = parseInt(process.env.PORT || "3000");
 const HOST = "0.0.0.0";
 
 server.listen(PORT, HOST, () => {
