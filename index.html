@@ -311,38 +311,46 @@
 
             // Npm package compatibility: Check for __scramjet$bundle
             if (typeof loadController === 'undefined' && window.__scramjet$bundle) {
-                console.log('✅ [MAIN] Found __scramjet$bundle, creating compatibility layer');
-                loadController = () => window.__scramjet$bundle;
+                console.log('✅ [MAIN] Found __scramjet$bundle. Keys:', Object.keys(window.__scramjet$bundle));
+
+                if (window.__scramjet$bundle.ScramjetController) {
+                    loadController = () => window.__scramjet$bundle;
+                }
+            }
+
+            // Check Codecs
+            if (typeof loadController === 'undefined' && window.__scramjet$codecs) {
+                console.log('✅ [MAIN] Found __scramjet$codecs. Keys:', Object.keys(window.__scramjet$codecs));
+                if (window.__scramjet$codecs.ScramjetController) {
+                    console.log('✅ [MAIN] Found ScramjetController in codecs!');
+                    loadController = () => window.__scramjet$codecs;
+                }
             }
 
             if (typeof loadController === 'undefined') {
-                console.warn('⚠️ [MAIN] $scramjetLoadController is still undefined. Checking other globals...');
+                console.warn('⚠️ [MAIN] $scramjetLoadController is still undefined. Checking other locals...');
 
                 // Debug: Print all globals that might match
                 const potentialKeys = Object.keys(window).filter(k => k.toLowerCase().includes('scramjet'));
                 console.log('  - Found potential keys:', potentialKeys);
 
                 if (potentialKeys.length > 0) {
-                    // Try to guess the right one. 
-                    const bestMatch = potentialKeys.find(k => typeof window[k] === 'function');
-                    if (bestMatch) {
-                        console.log(`✅ [MAIN] Falling back to global function: window.${bestMatch}`);
-                        loadController = window[bestMatch];
-                    }
-                }
-            }
-
-            if (typeof loadController !== 'function') {
-                // Try one last desperate check for 'Scramjet' object
-                if (window.Scramjet && window.Scramjet.ScramjetController) {
-                    console.log('✅ [MAIN] Found window.Scramjet.ScramjetController');
-                    loadController = () => window.Scramjet;
+                    potentialKeys.forEach(k => {
+                        const val = window[k];
+                        if (val && typeof val === 'object') {
+                            console.log(`  - Keys of ${k}:`, Object.keys(val));
+                            if (val.ScramjetController) {
+                                console.log(`✅ [MAIN] Found ScramjetController in ${k}`);
+                                loadController = () => val;
+                            }
+                        }
+                    });
                 }
             }
 
             if (typeof loadController !== 'function') {
                 console.error('❌ [MAIN] CRITICAL: Could not find Scramjet loader function.');
-                console.error('  - Please check console for "Found potential keys"');
+                console.error('  - Please check console for keys of scramjet bundles');
                 return;
             }
 
