@@ -284,57 +284,123 @@
     <script>
         // Initialize Scramjet Proxy with WISP
         async function initializeProxy() {
+            console.log('🔧 [MAIN] Starting proxy initialization...');
+
             if (!('serviceWorker' in navigator)) {
-                console.error('❌ Service Workers not supported');
+                console.error('❌ [MAIN] Service Workers not supported in this browser');
                 return;
             }
+            console.log('✅ [MAIN] Service Worker API available');
+
+            // Check if required libraries loaded
+            console.log('🔍 [MAIN] Checking if libraries loaded...');
+            console.log('  - typeof $scramjetLoadController:', typeof $scramjetLoadController);
+            console.log('  - typeof BareMux:', typeof BareMux);
+
+            if (typeof $scramjetLoadController === 'undefined') {
+                console.error('❌ [MAIN] Scramjet bundle not loaded! Check script tags.');
+                return;
+            }
+            if (typeof BareMux === 'undefined') {
+                console.error('❌ [MAIN] BareMux not loaded! Check script tags.');
+                return;
+            }
+            console.log('✅ [MAIN] All required libraries loaded');
 
             try {
                 // 1. Register the Scramjet service worker
-                await navigator.serviceWorker.register('./sw.js', {
-                    scope: './',
-                    updateViaCache: 'none'
-                });
-                console.log('✅ Scramjet Service Worker registered');
+                console.log('📝 [MAIN] Attempting to register service worker at ./sw.js...');
+                let registration;
+                try {
+                    registration = await navigator.serviceWorker.register('./sw.js', {
+                        scope: './',
+                        updateViaCache: 'none'
+                    });
+                    console.log('✅ [MAIN] Service Worker registered successfully');
+                    console.log('  - Active:', registration.active);
+                    console.log('  - Installing:', registration.installing);
+                    console.log('  - Waiting:', registration.waiting);
+                    console.log('  - Scope:', registration.scope);
+                } catch (regError) {
+                    console.error('❌ [MAIN] Service Worker registration failed:', regError);
+                    console.error('  - Error name:', regError.name);
+                    console.error('  - Error message:', regError.message);
+                    console.error('  - Error stack:', regError.stack);
+                    throw regError;
+                }
 
                 // 2. Wait for service worker to be ready
-                await navigator.serviceWorker.ready;
-                console.log('✅ Service Worker is ready');
+                console.log('⏳ [MAIN] Waiting for service worker to be ready...');
+                const readyRegistration = await navigator.serviceWorker.ready;
+                console.log('✅ [MAIN] Service Worker is ready');
+                console.log('  - Active worker state:', readyRegistration.active.state);
 
                 // 3. Initialize Scramjet Controller
-                const { ScramjetController } = $scramjetLoadController();
+                console.log('🎮 [MAIN] Initializing Scramjet Controller...');
+                let ScramjetController;
+                try {
+                    const scramjetExports = $scramjetLoadController();
+                    console.log('  - Scramjet exports:', Object.keys(scramjetExports));
+                    ScramjetController = scramjetExports.ScramjetController;
+                    if (!ScramjetController) {
+                        throw new Error('ScramjetController not found in exports');
+                    }
+                } catch (scramjetError) {
+                    console.error('❌ [MAIN] Failed to load ScramjetController:', scramjetError);
+                    throw scramjetError;
+                }
 
                 window.scramjet = new ScramjetController({
                     prefix: '/service/',
                     codec: 'xor'
                 });
+                console.log('  - Controller instance created');
 
                 await window.scramjet.init();
-                console.log('✅ Scramjet Controller initialized');
+                console.log('✅ [MAIN] Scramjet Controller initialized');
 
                 // 4. Setup BareMux connection with libcurl transport over WISP
+                console.log('🔌 [MAIN] Setting up BareMux...');
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
                     "://my-site.boxathome.net/wisp/";
+                console.log('  - WISP URL:', wispUrl);
 
-                window.bareMuxConnection = new BareMux.BareMuxConnection("https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@latest/dist/worker.js");
+                try {
+                    window.bareMuxConnection = new BareMux.BareMuxConnection("https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@latest/dist/worker.js");
+                    console.log('  - BareMux connection created');
 
-                // Set libcurl transport with WISP endpoint
-                await window.bareMuxConnection.setTransport("https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport@latest/index.mjs", [
-                    { websocket: wispUrl }
-                ]);
+                    // Set libcurl transport with WISP endpoint
+                    await window.bareMuxConnection.setTransport("https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport@latest/index.mjs", [
+                        { websocket: wispUrl }
+                    ]);
+                    console.log('✅ [MAIN] BareMux configured with libcurl transport');
+                } catch (bareMuxError) {
+                    console.error('❌ [MAIN] BareMux setup failed:', bareMuxError);
+                    throw bareMuxError;
+                }
 
-                console.log('✅ BareMux configured with libcurl transport');
-                console.log('🔌 WISP endpoint:', wispUrl);
+                console.log('🎉 [MAIN] Proxy initialization complete!');
 
             } catch (err) {
-                console.error('❌ Proxy Setup failed:', err);
+                console.error('❌ [MAIN] Proxy Setup failed:', err);
+                console.error('Error details:', {
+                    name: err.name,
+                    message: err.message,
+                    stack: err.stack
+                });
             }
         }
 
         // Initialize when DOM is ready
+        console.log('📄 [MAIN] Document readyState:', document.readyState);
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeProxy);
+            console.log('⏳ [MAIN] Waiting for DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('✅ [MAIN] DOM loaded, starting initialization');
+                initializeProxy();
+            });
         } else {
+            console.log('✅ [MAIN] DOM already loaded, starting initialization immediately');
             initializeProxy();
         }
     </script>
