@@ -45,9 +45,6 @@ if (scramjetBundle) {
     scramjet = new ScramjetServiceWorker({
         prefix: prefix,
         wisp: (self.location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/",
-        transport: {
-            path: new URL("./lib/libcurl/index.mjs", baseURL).href,
-        },
         files: {
             wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", baseURL).href,
             all: new URL("./lib/scramjet/scramjet.all.js", baseURL).href,
