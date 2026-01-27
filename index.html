@@ -3,6 +3,10 @@
 
 <head>
     <!-- Cross-Origin Isolation for High Performance Proxying -->
+    <!-- Core Proxy Libraries -->
+    <script src="./lib/baremux/index.js"></script>
+    <script src="./lib/scramjet/scramjet.all.js"></script>
+
     <!-- Cross-Origin Isolation and Service Worker Lifecycle -->
     <script>
         // 1. Calculate Base Paths early
@@ -308,10 +312,7 @@
         </footer>
     </div>
 
-    <!-- BareMux -->
-    <script src="./lib/baremux/index.js"></script>
-    <!-- Scramjet -->
-    <script src="./lib/scramjet/scramjet.all.js"></script>
+
 
     <script>
         // Initialize Scramjet Proxy with WISP
