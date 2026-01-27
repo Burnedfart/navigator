@@ -448,9 +448,6 @@
                         config: {
                             prefix: window.SCRAMJET_PREFIX,
                             wisp: (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/",
-                            transport: {
-                                path: new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href,
-                            },
                             files: {
                                 wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", window.APP_BASE_URL).href,
                                 all: new URL("./lib/scramjet/scramjet.all.js", window.APP_BASE_URL).href,
@@ -468,8 +465,8 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
                 console.log('🔌 [MAIN] Wisp URL:', wispUrl);
 
-                // Set Transport
-                const transportPath = new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href;
+                // Set Transport - Using Epoxy transport (standard BareMux transport)
+                const transportPath = "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.9/dist/index.mjs";
                 await window.bareMuxConnection.setTransport(transportPath, [{ wisp: wispUrl }]);
                 console.log('✅ [MAIN] BareMux configured');
                 console.log('🎉 [MAIN] Proxy fully ready');
