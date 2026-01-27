@@ -25,10 +25,10 @@ self.addEventListener('activate', (event) => {
 });
 
 // Calculate prefix relative to SW location to ensure routing works immediately
-// Using 'lib/scramjet/' to match physical directory
+// IMPORTANT: This is the PROXY route, NOT where the library files are stored
 const swLocation = self.location.href;
 const baseURL = swLocation.substring(0, swLocation.lastIndexOf('/') + 1);
-const prefix = new URL("lib/scramjet/", baseURL).pathname;
+const prefix = "/service/";
 console.log('SW: 🔧 Computed prefix:', prefix);
 
 // Scramjet 2.0.0-alpha defines $scramjetLoadWorker on globalThis

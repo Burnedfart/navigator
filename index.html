@@ -9,7 +9,8 @@
     <script>
         // 1. Calculate Base Paths early
         window.APP_BASE_URL = new URL("./", window.location.href).href;
-        window.SCRAMJET_PREFIX = new URL("lib/scramjet/", window.APP_BASE_URL).pathname;
+        // IMPORTANT: Prefix is the PROXY route, NOT where files are stored
+        window.SCRAMJET_PREFIX = "/service/";
         console.log('🔧 [INIT] Base URL:', window.APP_BASE_URL);
         console.log('🔧 [INIT] Scramjet Prefix:', window.SCRAMJET_PREFIX);
 
