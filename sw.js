@@ -60,8 +60,17 @@ async function handleRequest(event) {
             console.log(`SW: ✅ Proxied response for ${url}`);
         } catch (err) {
             console.error(`SW: ❌ Proxy fetch failed for ${url}:`, err);
-            // Fallback to fetch to see the 404 from server, or maybe return a custom error page
-            response = await fetch(event.request);
+            // Return the error to the user so we can see it!
+            response = new Response(
+                `<h1>Proxy Error</h1>
+                <p>Failed to fetch: ${url}</p>
+                <pre>${err.toString()}\n${err.stack || ''}</pre>
+                <p>Check console for more details.</p>`,
+                {
+                    status: 500,
+                    headers: { 'Content-Type': 'text/html' }
+                }
+            );
         }
     } else {
         response = await fetch(event.request);
