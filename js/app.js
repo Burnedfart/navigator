@@ -452,9 +452,10 @@ async function handleFormSubmit(event) {
             // Append to rendered tab
             elements.renderedTab.appendChild(iframe);
 
-            // Manually construct Scramjet URL - Scramjet expects just the bare URL without encoding
-            // The Service Worker will handle the encoding
-            const scramjetUrl = window.location.origin + window.SCRAMJET_PREFIX + url;
+            // Manually construct Scramjet URL
+            // Strip protocol - Scramjet Service Worker expects: /service/example.com/ not /service/https://example.com/
+            const urlWithoutProtocol = url.replace(/^https?:\/\//, '');
+            const scramjetUrl = window.location.origin + window.SCRAMJET_PREFIX + urlWithoutProtocol;
             console.log('🔗 Navigating to:', scramjetUrl);
             iframe.src = scramjetUrl;
 
@@ -466,7 +467,7 @@ async function handleFormSubmit(event) {
             // Update source tab with info
             state.currentContent = `<!-- Loaded via Scramjet Proxy + WISP -->
 <!-- URL: ${url} -->
-<!-- Transport: libcurl over WISP -->
+<!-- Transport: Epoxy over WISP -->
 <!-- Backend: ${window.bareMuxConnection ? 'Connected' : 'Disconnected'} -->`;
 
             if (elements.sourceCode) {
@@ -474,7 +475,7 @@ async function handleFormSubmit(event) {
             }
 
             // Update encoding display
-            updateEncodingDisplay(url, frame.frame.src);
+            updateEncodingDisplay(url, iframe.src);
 
         } else {
             throw new Error('Scramjet not initialized. Please refresh the page.');
