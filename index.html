@@ -275,11 +275,23 @@
         </footer>
     </div>
 
-    <!-- Scramjet Bundle (from unpkg CDN) -->
-    <script src="https://unpkg.com/@mercuryworkshop/scramjet@latest/dist/scramjet.codecs.js"></script>
-    <script src="https://unpkg.com/@mercuryworkshop/scramjet@latest/dist/scramjet.bundle.js"></script>
-    <!-- BareMux (from unpkg CDN) -->
-    <script src="https://unpkg.com/@mercuryworkshop/bare-mux@latest/dist/index.js"></script>
+    <!-- Scramjet Bundle (from jsdelivr npm CDN) - Reverted as Statically 404'd -->
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.codecs.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.bundle.js"></script>
+    <!-- BareMux (from jsdelivr npm CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@latest/dist/index.js"></script>
+
+    <script>
+        // DEBUG: Check what globals were exported
+        console.log('🔍 [DEBUG] Globals check:');
+        console.log('  - window.$scramjetLoadController:', window.$scramjetLoadController);
+        console.log('  - window.Scramjet:', window.Scramjet);
+        console.log('  - window.scramjet:', window.scramjet);
+
+        // Find any variable starting with $scramjet or Scramjet
+        const potentialExports = Object.keys(window).filter(k => k.toLowerCase().includes('scramjet'));
+        console.log('  - Potential Scramjet exports:', potentialExports);
+    </script>
 
     <script>
         // Initialize Scramjet Proxy with WISP
@@ -294,18 +306,51 @@
 
             // Check if required libraries loaded
             console.log('🔍 [MAIN] Checking if libraries loaded...');
-            console.log('  - typeof $scramjetLoadController:', typeof $scramjetLoadController);
-            console.log('  - typeof BareMux:', typeof BareMux);
 
-            if (typeof $scramjetLoadController === 'undefined') {
-                console.error('❌ [MAIN] Scramjet bundle not loaded! Check script tags.');
+            let loadController = window.$scramjetLoadController;
+
+            if (typeof loadController === 'undefined') {
+                console.warn('⚠️ [MAIN] $scramjetLoadController is undefined. Searching globals...');
+
+                // Debug: Print all globals that might match
+                const potentialKeys = Object.keys(window).filter(k => k.toLowerCase().includes('scramjet'));
+                console.log('  - Found potential keys:', potentialKeys);
+
+                if (potentialKeys.length > 0) {
+                    // Try to guess the right one. 
+                    // Common variations: Scramjet, scramjet, $scramjet
+                    const bestMatch = potentialKeys.find(k => typeof window[k] === 'function') || potentialKeys[0];
+                    if (bestMatch) {
+                        console.log(`✅ [MAIN] Falling back to global: window.${bestMatch}`);
+                        loadController = window[bestMatch];
+                    }
+                }
+            }
+
+            if (typeof loadController !== 'function') {
+                // Try one last desperate check for 'Scramjet' object
+                if (window.Scramjet && window.Scramjet.ScramjetController) {
+                    console.log('✅ [MAIN] Found window.Scramjet.ScramjetController');
+                    // Mock the loader function
+                    loadController = () => window.Scramjet;
+                }
+            }
+
+            if (typeof loadController !== 'function') {
+                console.error('❌ [MAIN] CRITICAL: Could not find Scramjet loader function.');
+                console.error('  - Please check console for "Found potential keys"');
                 return;
             }
+
             if (typeof BareMux === 'undefined') {
                 console.error('❌ [MAIN] BareMux not loaded! Check script tags.');
                 return;
             }
             console.log('✅ [MAIN] All required libraries loaded');
+
+            // Define $scramjetLoadController globally if we found a broad replacement, 
+            // so we don't break downstream code if it relies on it.
+            window.$scramjetLoadController = loadController;
 
             try {
                 // 1. Register the Scramjet service worker

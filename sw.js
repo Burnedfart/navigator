@@ -19,23 +19,32 @@ try {
     throw e;
 }
 
-console.log('[SW] Checking if ScramjetServiceWorker is defined:', typeof ScramjetServiceWorker);
-
-let scramjet;
+// Initialize Scramjet Worker
 try {
-    console.log('[SW] Attempting to create ScramjetServiceWorker instance...');
-    scramjet = new ScramjetServiceWorker();
-    console.log('[SW] ✅ ScramjetServiceWorker instance created');
+    console.log('[SW] Initializing Scramjet Worker...');
+    // Demo uses: const { ScramjetServiceWorker } = $scramjetLoadWorker();
+    if (typeof $scramjetLoadWorker !== 'function') {
+        throw new Error('$scramjetLoadWorker is not defined');
+    }
+    const { ScramjetServiceWorker } = $scramjetLoadWorker();
+    const scramjet = new ScramjetServiceWorker();
+
+    // Make scramjet instance available to handleRequest
+    self.scramjet = scramjet;
+    console.log('[SW] ✅ ScramjetServiceWorker initialized');
 } catch (e) {
-    console.error('[SW] ❌ Failed to create ScramjetServiceWorker:', e);
-    throw e;
+    console.error('[SW] ❌ Failed to initialize ScramjetServiceWorker:', e);
+    // Don't throw here, let handleRequest fail gracefully or try again
 }
 
 async function handleRequest(event) {
+    if (!self.scramjet) {
+        return fetch(event.request);
+    }
     try {
-        await scramjet.loadConfig();
-        if (scramjet.route(event)) {
-            return scramjet.fetch(event);
+        await self.scramjet.loadConfig();
+        if (self.scramjet.route(event)) {
+            return self.scramjet.fetch(event);
         }
         return fetch(event.request);
     } catch (e) {
