@@ -423,7 +423,26 @@ async function handleFormSubmit(event) {
     setLoading(true);
 
     try {
-        // Use Scramjet Controller to create frame and navigate
+        // CRITICAL: Configure transport BEFORE navigation (like official demo)
+        if (!window.bareMuxConnection) {
+            throw new Error('BareMux not initialized. Please refresh the page.');
+        }
+
+        // Set WISP URL
+        const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
+
+        // Configure transport (matching official demo's approach)
+        // They use libcurl-transport with { websocket: wispUrl }
+        const transportPath = new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href;
+        const currentTransport = await window.bareMuxConnection.getTransport();
+
+        if (currentTransport !== transportPath) {
+            console.log('🔧 [PROXY] Configuring BareMux transport:', transportPath);
+            await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
+            console.log('✅ [PROXY] Transport configured');
+        }
+
+        // NOW use Scramjet Controller to create frame and navigate
         if (window.scramjet) {
             // Hide existing iframe/content
             if (elements.contentFrame) {
@@ -439,12 +458,13 @@ async function handleFormSubmit(event) {
                 fetchTimeMs: 0
             });
 
-            // Use Scramjet's official API which handles encoding properly
+            // Remove existing frame if present
             const existingFrame = document.getElementById('sj-frame');
             if (existingFrame) {
                 existingFrame.remove();
             }
 
+            // Create new frame
             const frame = window.scramjet.createFrame();
             frame.frame.id = 'sj-frame';
             frame.frame.style.cssText = 'width: 100%; height: 100%; border: none;';
@@ -453,6 +473,7 @@ async function handleFormSubmit(event) {
             elements.renderedTab.appendChild(frame.frame);
 
             // Use Scramjet's go() method - it properly encodes the URL with the codec
+            console.log('🚀 [PROXY] Navigating to:', url);
             frame.go(url);
 
             // Show the rendered content
@@ -463,7 +484,7 @@ async function handleFormSubmit(event) {
             // Update source tab with info
             state.currentContent = `<!-- Loaded via Scramjet Proxy + WISP -->
 <!-- URL: ${url} -->
-<!-- Transport: Epoxy over WISP -->
+<!-- Transport: libcurl over WISP -->
 <!-- Backend: ${window.bareMuxConnection ? 'Connected' : 'Disconnected'} -->`;
 
             if (elements.sourceCode) {

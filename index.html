@@ -465,10 +465,10 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
                 console.log('🔌 [MAIN] Wisp URL:', wispUrl);
 
-                // Set Transport - Using Epoxy transport (standard BareMux transport)
-                const transportPath = "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.9/dist/index.mjs";
-                await window.bareMuxConnection.setTransport(transportPath, [{ wisp: wispUrl }]);
-                console.log('✅ [MAIN] BareMux configured');
+                // Set Transport - Using libcurl transport (like official demo)
+                const transportPath = new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href;
+                await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
+                console.log('✅ [MAIN] BareMux configured with libcurl transport');
                 console.log('🎉 [MAIN] Proxy fully ready');
 
             } catch (err) {
