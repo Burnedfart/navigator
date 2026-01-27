@@ -275,19 +275,14 @@
         </footer>
     </div>
 
-    <script src="uv/uv.bundle.js"></script>
-    <script src="uv/uv.config.js"></script>
-    <script src="uv/bare-mux.js"></script>
-    <script type="module">
-        // Initialize Bare-Mux Transport and Register Ultraviolet Service Worker
-        // Using bare-as-module3 for cross-origin Bare server support (GitHub Pages → Vercel)
+    <!-- Scramjet Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.codecs.js"></script>
+    <script src="js/scramjet.config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.client.js"></script>
 
-        const bareServerUrl = 'https://my-site.boxathome.net/bare/';
-
-        // Calculate the base path for GitHub Pages subdirectory support
-        // This converts "./uv/file.js" style paths to "/web-dev-learing/uv/file.js" style absolute paths
-        const basePath = new URL('./', window.location.href).pathname;
-
+    <script>
+        // Initialize Scramjet Proxy
         async function initializeProxy() {
             if (!('serviceWorker' in navigator)) {
                 console.error('❌ Service Workers not supported');
@@ -295,49 +290,34 @@
             }
 
             try {
-                // 1. Unregister existing service workers to prevent conflicts
+                // 1. Unregister existing service workers (crucial for migration)
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (const registration of registrations) {
                     await registration.unregister();
+                    console.log('🧹 Unregistered old service worker');
                 }
 
-                // 2. Register the service worker
+                // 2. Register the Scramjet service worker
+                // Ensure scope is correct for the prefix defined in config
                 const reg = await navigator.serviceWorker.register('./sw.js', {
                     scope: './',
                     updateViaCache: 'none'
                 });
-                console.log('✅ UV Service Worker registered');
+                console.log('✅ Scramjet Service Worker registered');
 
-                // 3. Wait for the service worker to be ready
+                // 3. Wait for it directly
                 await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker is ready');
+
                 if (navigator.serviceWorker.controller) {
-                    console.log('✅ Service Worker is controlling the page');
+                    console.log('🚀 Scramjet is controlling the page');
                 } else {
-                    console.log('⚠️ Service Worker registered but not controlling. Reloading...');
-                    // location.reload(); // Optional: force reload
+                    // Start BareMux if needed, but Scramjet usually handles this via config 'bare'
+                    console.log('⚠️ Reload for controller to take effect');
                 }
 
-                // 3. Set up Bare-Mux connection with the SharedWorker
-                // bare-mux requires absolute paths starting with /
-                const workerPath = basePath + 'uv/bare-mux-worker.js';
-                // Use CDN for bare-as-module3 transport (GitHub Pages compatible)
-                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2/dist/index.mjs';
-
-                console.log('📍 Base path:', basePath);
-                console.log('📍 Worker path:', workerPath);
-                console.log('📍 Transport path:', transportPath);
-
-                const connection = new BareMux.BareMuxConnection(workerPath);
-
-                // 4. Configure the transport using bare-as-module3
-                await connection.setTransport(transportPath, [bareServerUrl]);
-
-                console.log('✅ Bare-Mux transport configured to:', bareServerUrl);
-                console.log('🚀 Proxy is ready! You can now browse through the proxy.');
-
             } catch (err) {
-                console.error('❌ UV Setup failed:', err);
-                console.error('Details:', err.message);
+                console.error('❌ Proxy Setup failed:', err);
             }
         }
 

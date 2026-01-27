@@ -427,10 +427,11 @@ async function handleFormSubmit(event) {
         const encodeResult = await encodeUrl(url);
         updateEncodingDisplay(url, encodeResult.encoded);
 
-        // Check if Ultraviolet is available
-        if (typeof __uv$config !== 'undefined' && typeof Ultraviolet !== 'undefined') {
-            // Use Ultraviolet for full site support
-            const encodedUrl = __uv$config.prefix + __uv$config.encodeUrl(url);
+        // Check if Scramjet is available
+        if (typeof __scramjet$config !== 'undefined') {
+            // Use Scramjet for full site support
+            // For xor codec: __scramjet$config.codec.encode(url)
+            const encodedUrl = __scramjet$config.prefix + __scramjet$config.codec.encode(url);
 
             // Update metadata with basic info
             updateMetadata({
