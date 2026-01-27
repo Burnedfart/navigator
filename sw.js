@@ -42,15 +42,10 @@ if (typeof self.$scramjetLoadWorker === 'function') {
 let scramjet;
 if (scramjetBundle) {
     const { ScramjetServiceWorker } = scramjetBundle;
-    scramjet = new ScramjetServiceWorker({
-        prefix: prefix,
-        codec: "xor",  // Use XOR encoding for the URL in the path
-        files: {
-            wasm: new URL("./lib/scramjet/scramjet.wasm.wasm", baseURL).href,
-            all: new URL("./lib/scramjet/scramjet.all.js", baseURL).href,
-            sync: new URL("./lib/scramjet/scramjet.sync.js", baseURL).href,
-        }
-    });
+    // CRITICAL: Match official demo - NO constructor options!
+    // ScramjetServiceWorker gets config via loadConfig() from main page's BareMux
+    scramjet = new ScramjetServiceWorker();
+    console.log('SW: ✅ ScramjetServiceWorker created (no options - uses BareMux config)');
 } else {
     console.error('SW: ❌ Scramjet bundle not found! __scramjet$bundle is undefined.');
 }
