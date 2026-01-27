@@ -1,8 +1,24 @@
-import { createServer } from "node:http";
+import { createServer } from "node:https";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "url";
 import path from "path";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import express from "express";
+
+// Load SSL certificates (certbot standard locations)
+const DOMAIN = "my-site.boxathome.net";
+let httpsOptions;
+try {
+    httpsOptions = {
+        key: readFileSync(`/etc/letsencrypt/live/${DOMAIN}/privkey.pem`),
+        cert: readFileSync(`/etc/letsencrypt/live/${DOMAIN}/fullchain.pem`)
+    };
+    console.log("✅ SSL certificates loaded successfully");
+} catch (err) {
+    console.error("❌ Failed to load SSL certificates:", err.message);
+    console.error("   Make sure certbot certificates exist at /etc/letsencrypt/live/" + DOMAIN);
+    process.exit(1);
+}
 
 // Get paths for serving static files
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -69,8 +85,8 @@ app.use("/lib/", express.static(path.join(__dirname, "lib"), {
     }
 }));
 
-// Create HTTP server
-const server = createServer();
+// Create HTTPS server with SSL certificates
+const server = createServer(httpsOptions);
 
 // Handle HTTP requests with Express
 server.on("request", (req, res) => {
@@ -104,11 +120,11 @@ const PORT = parseInt(process.env.PORT || "3000");
 const HOST = "0.0.0.0";
 
 server.listen(PORT, HOST, () => {
-    console.log("🚀 Scramjet Proxy Server with WISP");
+    console.log("🚀 Scramjet Proxy Server with WISP (HTTPS)");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log(`📡 HTTP Server: http://localhost:${PORT}`);
-    console.log(`🔌 WISP Endpoint: ws://localhost:${PORT}/wisp/`);
-    console.log(`🏥 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`📡 HTTPS Server: https://${DOMAIN}:${PORT}`);
+    console.log(`🔌 WISP Endpoint: wss://${DOMAIN}:${PORT}/wisp/`);
+    console.log(`🏥 Health Check: https://${DOMAIN}:${PORT}/api/health`);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("\nServing static files:");
     console.log(`  📂 Root: ${__dirname}`);

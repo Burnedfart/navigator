@@ -129,14 +129,6 @@ self.addEventListener("fetch", (event) => {
 });
 
 
-self.addEventListener("message", async (event) => {
-    if (event.data && event.data.type === 'config') {
-        console.log('SW: Received config', event.data.config);
-        try {
-            await scramjet.configure(event.data.config);
-            console.log('SW: Scramjet configured successfully');
-        } catch (err) {
-            console.error('SW: Configuration failed', err);
-        }
-    }
-});
+
+// Message listener removed - scramjet.configure() doesn't exist in 2.0.0-alpha
+// Configuration is handled via loadConfig() which reads from BareMux
