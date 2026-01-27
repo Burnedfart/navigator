@@ -335,17 +335,20 @@
                     // Path correction for GitHub Pages:
                     // Point to the local bare-mux-worker.js
                     const rootPath = new URL('./', window.location.href).pathname;
-                    // Add cache buster to ensure we get a fresh worker instance
-                    const muxWorkerPath = rootPath + 'uv/bare-mux-worker.js?v=' + Date.now();
+                    const muxWorkerPath = rootPath + 'uv/bare-mux-worker.js';
 
                     console.log('Using BareMux worker:', muxWorkerPath);
-                    const connection = new BareMux.BareMuxConnection(muxWorkerPath);
+
+                    // Store connection globally to prevent recreation
+                    if (!window.bareMuxConnection) {
+                        window.bareMuxConnection = new BareMux.BareMuxConnection(muxWorkerPath);
+                    }
 
                     // bare-as-module3 config: [url]
                     console.log('Setting transport (bare-as-module3) with url:', bareServerUrl);
 
                     try {
-                        await connection.setTransport(transportPath, [bareServerUrl]);
+                        await window.bareMuxConnection.setTransport(transportPath, [bareServerUrl]);
                         console.log('✅ Transport Configured Successfully');
                     } catch (transportErr) {
                         console.error('❌ Failed to set transport:', transportErr);

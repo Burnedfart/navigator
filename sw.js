@@ -12,38 +12,13 @@ importScripts('https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dis
 
 const scramjet = new ScramjetServiceWorker();
 
-// Initialize BareMux transport in the service worker
-async function initTransport() {
-    const bareServerUrl = 'https://my-site.boxathome.net/bare/';
-    const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2.2.5/dist/index.mjs';
-
-    if (typeof BareMux !== 'undefined') {
-        try {
-            // Get the worker path relative to service worker location
-            const swUrl = new URL(self.registration.scope);
-            const muxWorkerPath = swUrl.pathname + 'uv/bare-mux-worker.js';
-
-            console.log('[SW] Initializing BareMux with worker:', muxWorkerPath);
-            const connection = new BareMux.BareMuxConnection(muxWorkerPath);
-
-            await connection.setTransport(transportPath, [bareServerUrl]);
-            console.log('[SW] ✅ Transport configured in service worker');
-        } catch (err) {
-            console.error('[SW] ❌ Failed to set transport in SW:', err);
-        }
-    } else {
-        console.warn('[SW] BareMux not available in service worker');
-    }
-}
-
-// Initialize transport when the service worker activates
-self.addEventListener('activate', (event) => {
-    event.waitUntil(initTransport());
-});
-
-// Also try to init on install (in case activate already happened)
+// Skip waiting to activate immediately
 self.addEventListener('install', () => {
     self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -51,7 +26,7 @@ self.addEventListener('fetch', (event) => {
         (async () => {
             const url = new URL(event.request.url);
 
-            // Bypass Scramjet for static assets and API endpoints
+            // Bypass Scramjet for static assets, bare-mux worker, and API endpoints
             if (url.pathname.includes('/js/') ||
                 url.pathname.includes('/css/') ||
                 url.pathname.includes('/uv/') ||
