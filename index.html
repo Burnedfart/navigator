@@ -292,6 +292,8 @@
             }
             console.log('✅ [MAIN] Service Worker API available');
 
+            const { ScramjetController } = $scramjetLoadController();
+
             // Determine the base URL of the application, ensuring a trailing slash
             // This prevents 'new URL()' from stripping the repository name if the current URL doesn't have a slash
             // e.g. "https://site.com/repo" -> "https://site.com/repo/"
