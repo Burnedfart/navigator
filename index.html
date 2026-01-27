@@ -275,11 +275,11 @@
         </footer>
     </div>
 
-    <!-- Scramjet Bundle (from server via node_modules) -->
-    <script src="/scram/scramjet.codecs.js"></script>
-    <script src="/scram/scramjet.bundle.js"></script>
-    <!-- BareMux (from server via node_modules) -->
-    <script src="/baremux/index.js"></script>
+    <!-- Scramjet Bundle (from Oracle backend server) -->
+    <script src="https://my-site.boxathome.net/scram/scramjet.codecs.js"></script>
+    <script src="https://my-site.boxathome.net/scram/scramjet.bundle.js"></script>
+    <!-- BareMux (from Oracle backend server) -->
+    <script src="https://my-site.boxathome.net/baremux/index.js"></script>
 
     <script>
         // Initialize Scramjet Proxy with WISP
@@ -316,10 +316,10 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
                     "://my-site.boxathome.net/wisp/";
 
-                window.bareMuxConnection = new BareMux.BareMuxConnection("/baremux/worker.js");
+                window.bareMuxConnection = new BareMux.BareMuxConnection("https://my-site.boxathome.net/baremux/worker.js");
 
                 // Set libcurl transport with WISP endpoint
-                await window.bareMuxConnection.setTransport("/libcurl/index.mjs", [
+                await window.bareMuxConnection.setTransport("https://my-site.boxathome.net/libcurl/index.mjs", [
                     { websocket: wispUrl }
                 ]);
 

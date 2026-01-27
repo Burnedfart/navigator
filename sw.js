@@ -1,6 +1,6 @@
-importScripts("/scram/scramjet.codecs.js");
-importScripts("/scram/scramjet.bundle.js");
-importScripts("/scram/scramjet.worker.js");
+importScripts("https://my-site.boxathome.net/scram/scramjet.codecs.js");
+importScripts("https://my-site.boxathome.net/scram/scramjet.bundle.js");
+importScripts("https://my-site.boxathome.net/scram/scramjet.worker.js");
 
 const scramjet = new ScramjetServiceWorker();
 
