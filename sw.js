@@ -22,8 +22,17 @@ try {
 // Initialize Scramjet Worker
 try {
     console.log('[SW] Initializing Scramjet Worker...');
+
+    // Npm package compatibility: Check for __scramjet$bundle
+    if (typeof self.$scramjetLoadWorker === 'undefined' && self.__scramjet$bundle) {
+        console.log('[SW] Found __scramjet$bundle, creating compatibility layer');
+        self.$scramjetLoadWorker = () => self.__scramjet$bundle;
+    }
+
     // Demo uses: const { ScramjetServiceWorker } = $scramjetLoadWorker();
     if (typeof $scramjetLoadWorker !== 'function') {
+        // Debugging info
+        console.error('[SW] Globals:', Object.keys(self).filter(k => k.includes('scramjet')));
         throw new Error('$scramjetLoadWorker is not defined');
     }
     const { ScramjetServiceWorker } = $scramjetLoadWorker();

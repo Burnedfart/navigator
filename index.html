@@ -309,8 +309,14 @@
 
             let loadController = window.$scramjetLoadController;
 
+            // Npm package compatibility: Check for __scramjet$bundle
+            if (typeof loadController === 'undefined' && window.__scramjet$bundle) {
+                console.log('✅ [MAIN] Found __scramjet$bundle, creating compatibility layer');
+                loadController = () => window.__scramjet$bundle;
+            }
+
             if (typeof loadController === 'undefined') {
-                console.warn('⚠️ [MAIN] $scramjetLoadController is undefined. Searching globals...');
+                console.warn('⚠️ [MAIN] $scramjetLoadController is still undefined. Checking other globals...');
 
                 // Debug: Print all globals that might match
                 const potentialKeys = Object.keys(window).filter(k => k.toLowerCase().includes('scramjet'));
@@ -318,10 +324,9 @@
 
                 if (potentialKeys.length > 0) {
                     // Try to guess the right one. 
-                    // Common variations: Scramjet, scramjet, $scramjet
-                    const bestMatch = potentialKeys.find(k => typeof window[k] === 'function') || potentialKeys[0];
+                    const bestMatch = potentialKeys.find(k => typeof window[k] === 'function');
                     if (bestMatch) {
-                        console.log(`✅ [MAIN] Falling back to global: window.${bestMatch}`);
+                        console.log(`✅ [MAIN] Falling back to global function: window.${bestMatch}`);
                         loadController = window[bestMatch];
                     }
                 }
@@ -331,7 +336,6 @@
                 // Try one last desperate check for 'Scramjet' object
                 if (window.Scramjet && window.Scramjet.ScramjetController) {
                     console.log('✅ [MAIN] Found window.Scramjet.ScramjetController');
-                    // Mock the loader function
                     loadController = () => window.Scramjet;
                 }
             }
