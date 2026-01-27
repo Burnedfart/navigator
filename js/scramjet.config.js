@@ -29,18 +29,24 @@
     self.__scramjet$config = {
         // Dynamic prefix that includes the repo name if present
         prefix: rootPath + 'service/',
-        // The Bare server URL
+
+        // IMPORTANT: Direct Bare server connection (no BareMux)
+        // This tells Scramjet to connect directly to the Bare server
         bare: 'https://my-site.boxathome.net/bare/',
+
         // Use the directory where the files are hosted (CDN)
         directory: 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/',
+
         // Codec for encoding URLs
         codec: self.__scramjet$codecs.xor,
+
         // File paths
         bundle: 'scramjet.bundle.js',
         worker: 'scramjet.worker.js',
         client: 'scramjet.client.js',
         codecs: 'scramjet.codecs.js',
-        // Config file path relative to root - this needs to be accessible from both contexts
+
+        // Config file path
         config: rootPath + 'js/scramjet.config.js'
     };
 

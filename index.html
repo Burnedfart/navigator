@@ -275,8 +275,6 @@
         </footer>
     </div>
 
-    <!-- BareMux for Transport Management (Local Updated Version) -->
-    <script src="uv/bare-mux.js"></script>
     <!-- Scramjet Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@latest/dist/scramjet.codecs.js"></script>
     <script src="js/scramjet.config.js"></script>
@@ -318,46 +316,8 @@
                     console.log('⚠️ Reload for controller to take effect');
                 }
 
-                // 4. Initialize BareMux Transport (Fix for "there are no bare clients")
-                // Scramjet uses BareMux under the hood, so we must provide a transport.
-                // 4. Initialize BareMux Transport
-                // Scramjet uses BareMux under the hood.
-                // Switching to bare-as-module3 as Epoxy is reported broken.
-                // Using v2.2.5 which is verified to export ClientV3 as default
-                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2.2.5/dist/index.mjs';
-
-                // Define paths
-                const bareServerUrl = 'https://my-site.boxathome.net/bare/';
-
-                console.log('🔌 Connecting to BareMux...');
-
-                if (window.BareMux) {
-                    // Path correction for GitHub Pages:
-                    // Point to the local bare-mux-worker.js
-                    const rootPath = new URL('./', window.location.href).pathname;
-                    const muxWorkerPath = rootPath + 'uv/bare-mux-worker.js';
-
-                    console.log('Using BareMux worker:', muxWorkerPath);
-
-                    // Store connection globally to prevent recreation
-                    if (!window.bareMuxConnection) {
-                        window.bareMuxConnection = new BareMux.BareMuxConnection(muxWorkerPath);
-                    }
-
-                    // bare-as-module3 config: [url]
-                    console.log('Setting transport (bare-as-module3) with url:', bareServerUrl);
-
-                    try {
-                        await window.bareMuxConnection.setTransport(transportPath, [bareServerUrl]);
-                        console.log('✅ Transport Configured Successfully');
-                    } catch (transportErr) {
-                        console.error('❌ Failed to set transport:', transportErr);
-                        console.error('Transport Path:', transportPath);
-                    }
-
-                } else {
-                    console.error('❌ BareMux library not loaded in window');
-                }
+                // Scramjet will connect directly to the Bare server using the config
+                console.log('✅ Scramjet configured with direct Bare connection');
 
             } catch (err) {
                 console.error('❌ Proxy Setup failed:', err);
