@@ -453,8 +453,10 @@ async function handleFormSubmit(event) {
             // Append to rendered tab
             elements.renderedTab.appendChild(frame.frame);
 
-            // Navigate to URL
-            frame.go(url);
+            // Navigate to URL - Scramjet expects hostname+path only, not full URL with protocol
+            const urlObj = new URL(url);
+            const encodedPath = urlObj.hostname + urlObj.pathname + urlObj.search + urlObj.hash;
+            frame.go(encodedPath);
 
             // Show the rendered content
             elements.emptyState?.classList.add('hidden');
