@@ -304,8 +304,8 @@
                 // 3. Set up Bare-Mux connection with the SharedWorker
                 // bare-mux requires absolute paths starting with /
                 const workerPath = basePath + 'uv/bare-mux-worker.js';
-                // Use CDN for bare-as-module3 transport (GitHub Pages compatible)
-                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2/dist/index.mjs';
+                // Use Epoxy transport (WebSocket-based) for better performance on heavy sites like YouTube
+                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs';
 
                 console.log('📍 Base path:', basePath);
                 console.log('📍 Worker path:', workerPath);
