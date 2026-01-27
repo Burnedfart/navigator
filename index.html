@@ -276,9 +276,9 @@
     </div>
 
     <!-- BareMux -->
-    <script src="/baremux/index.js"></script>
+    <script src="./lib/baremux/index.js"></script>
     <!-- Scramjet -->
-    <script src="/scram/scramjet.all.js"></script>
+    <script src="./lib/scramjet/scramjet.all.js"></script>
 
     <script>
         // Initialize Scramjet Proxy with WISP
@@ -303,9 +303,9 @@
 
                 window.scramjet = new ScramjetController({
                     files: {
-                        wasm: "/scram/scramjet.wasm.wasm",
-                        all: "/scram/scramjet.all.js",
-                        sync: "/scram/scramjet.sync.js",
+                        wasm: "./lib/scramjet/scramjet.wasm.wasm",
+                        all: "./lib/scramjet/scramjet.all.js",
+                        sync: "./lib/scramjet/scramjet.sync.js",
                     },
                     prefix: '/service/',
                     codec: 'xor'
@@ -316,8 +316,8 @@
 
                 // 2. Register Service Worker
                 console.log('📝 [MAIN] Registering Service Worker...');
-                const registration = await navigator.serviceWorker.register('sw.js', {
-                    scope: '/'
+                const registration = await navigator.serviceWorker.register('./sw.js', {
+                    scope: './'
                 });
                 console.log('✅ [MAIN] Service Worker registered');
 
@@ -327,11 +327,11 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net/wisp/";
 
                 // Initialize BareMux connection
-                window.bareMuxConnection = new BareMux.BareMuxConnection("/baremux/worker.js");
+                window.bareMuxConnection = new BareMux.BareMuxConnection("./lib/baremux/worker.js");
 
                 // Set transport
                 // Note: server.js maps /libcurl/ to the package root. dist/index.mjs is the ESM entry.
-                await window.bareMuxConnection.setTransport("/libcurl/dist/index.mjs", [{ wisp: wispUrl }]);
+                await window.bareMuxConnection.setTransport("./lib/libcurl/index.mjs", [{ wisp: wispUrl }]);
 
                 console.log('✅ [MAIN] BareMux configured with libcurl transport');
                 console.log('🎉 [MAIN] Proxy initialization complete!');

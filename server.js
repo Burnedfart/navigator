@@ -51,22 +51,8 @@ app.use(express.static(__dirname, {
     }
 }));
 
-// Serve Scramjet files
-app.use("/scram/", express.static(scramjetPath, {
-    setHeaders: (res) => {
-        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    }
-}));
-
-// Serve libcurl transport
-app.use("/libcurl/", express.static(libcurlPath, {
-    setHeaders: (res) => {
-        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    }
-}));
-
-// Serve BareMux
-app.use("/baremux/", express.static(baremuxPath, {
+// Serve 'lib' directory for static assets
+app.use("/lib/", express.static(path.join(__dirname, "lib"), {
     setHeaders: (res) => {
         res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     }
@@ -114,8 +100,6 @@ server.listen(PORT, HOST, () => {
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("\nServing static files:");
     console.log(`  📂 Root: ${__dirname}`);
-    console.log(`  📦 Scramjet: /scram/`);
-    console.log(`  📦 BareMux: /baremux/`);
-    console.log(`  📦 libcurl: /libcurl/`);
+    console.log(`  📦 Lib: /lib/ (Static Assets)`);
     console.log("\nPress Ctrl+C to stop");
 });
