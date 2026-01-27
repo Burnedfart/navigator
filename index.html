@@ -323,7 +323,8 @@
                 // 4. Initialize BareMux Transport
                 // Scramjet uses BareMux under the hood.
                 // Switching to bare-as-module3 as Epoxy is reported broken.
-                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2.0.1/dist/index.mjs';
+                // Using v2.2.5 which is verified to export ClientV3 as default
+                const transportPath = 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-as-module3@2.2.5/dist/index.mjs';
 
                 // Define paths
                 const bareServerUrl = 'https://my-site.boxathome.net/bare/';
