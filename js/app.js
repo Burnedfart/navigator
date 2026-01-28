@@ -12,15 +12,6 @@
  * - Local session management
  */
 
-// ============================================================================
-// APPLICATION STATE
-// Centralized state management for the application
-// ============================================================================
-
-// ============================================================================
-// APPLICATION CONFIGURATION
-// ============================================================================
-
 const CONFIG = {
     // API Base URL for the proxy backend (Oracle Cloud)
     API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
