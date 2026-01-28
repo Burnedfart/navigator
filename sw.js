@@ -121,7 +121,19 @@ async function handleRequest(event) {
             if (isNavigationRequest) {
                 const newHeaders = new Headers(response.headers);
                 newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+                // Detect iframe context: check if being embedded via Sec-Fetch-Dest header
+                const fetchDest = event.request.headers.get('Sec-Fetch-Dest');
+                const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
+
+                if (isIframe) {
+                    // Allow iframe embedding on cross-origin sites like sites.google.com
+                    newHeaders.set("Cross-Origin-Opener-Policy", "unsafe-none");
+                    console.log('SW: 🖼️ Iframe context detected, using relaxed COOP');
+                } else {
+                    // Standalone mode: stronger isolation
+                    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+                }
 
                 const modifiedResponse = new Response(response.body, {
                     status: response.status === 0 ? 200 : response.status,
@@ -168,7 +180,16 @@ async function handleRequest(event) {
         if (isNavigationRequest) {
             const newHeaders = new Headers(response.headers);
             newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-            newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+            // Detect iframe context
+            const fetchDest = event.request.headers.get('Sec-Fetch-Dest');
+            const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
+
+            if (isIframe) {
+                newHeaders.set("Cross-Origin-Opener-Policy", "unsafe-none");
+            } else {
+                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+            }
 
             try {
                 return new Response(response.body, {

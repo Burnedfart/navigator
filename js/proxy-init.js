@@ -10,6 +10,12 @@ window.ProxyService = {
 
 window.ProxyService.ready = new Promise(async (resolve, reject) => {
     try {
+        // Detect iframe embedding
+        const isInIframe = window.self !== window.top;
+        if (isInIframe) {
+            console.log('🖼️ [PROXY] Running in iframe mode');
+        }
+
         console.log('🔧 [PROXY] Starting initialization...');
 
         // 1. Calculate Base Paths
@@ -74,9 +80,16 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // 5. Initialize Scramjet
         let scramjetBundle;
-        if (typeof window.$scramjetLoadController === 'function') {
-            scramjetBundle = window.$scramjetLoadController();
-        } else if (window.__scramjet$bundle) {
+        try {
+            if (typeof window.$scramjetLoadController === 'function') {
+                scramjetBundle = window.$scramjetLoadController();
+            } else if (window.__scramjet$bundle) {
+                scramjetBundle = window.__scramjet$bundle;
+            }
+        } catch (crossOriginErr) {
+            // In iframe context, accessing some globals may fail due to cross-origin restrictions
+            console.warn('⚠️ [PROXY] Cross-origin access blocked, trying alternative:', crossOriginErr.message);
+            // Try direct access as fallback
             scramjetBundle = window.__scramjet$bundle;
         }
 
