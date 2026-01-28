@@ -84,19 +84,41 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         const { ScramjetController } = scramjetBundle;
         const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
 
-        // CRITICAL: Force delete $scramjet database to ensure clean initialization
-        console.log('🗑️ [PROXY] Deleting existing $scramjet database...');
-        await new Promise((resolve) => {
-            const deleteReq = indexedDB.deleteDatabase('$scramjet');
-            deleteReq.onsuccess = () => {
-                console.log('✅ [PROXY] $scramjet database deleted');
-                resolve();
+        // Check if database exists and has correct schema
+        const needsReset = await new Promise((resolve) => {
+            const checkDB = indexedDB.open('$scramjet');
+            checkDB.onsuccess = (event) => {
+                const db = event.target.result;
+                const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
+                const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
+                db.close();
+
+                if (missingStores.length > 0) {
+                    console.log(`⚠️ [PROXY] $scramjet database missing stores: ${missingStores.join(', ')}`);
+                    resolve(true); // Needs reset
+                } else {
+                    console.log(`✅ [PROXY] $scramjet database schema valid (${db.objectStoreNames.length} stores)`);
+                    resolve(false); // Schema is good
+                }
             };
-            deleteReq.onerror = deleteReq.onblocked = () => {
-                console.log('⚠️ [PROXY] Could not delete $scramjet database, continuing anyway');
-                resolve();
-            };
+            checkDB.onerror = () => resolve(true); // Database doesn't exist, needs creation
         });
+
+        // Only delete if schema is corrupt
+        if (needsReset) {
+            console.log('🗑️ [PROXY] Deleting corrupted $scramjet database...');
+            await new Promise((resolve) => {
+                const deleteReq = indexedDB.deleteDatabase('$scramjet');
+                deleteReq.onsuccess = () => {
+                    console.log('✅ [PROXY] Database deleted, will recreate');
+                    resolve();
+                };
+                deleteReq.onerror = deleteReq.onblocked = () => {
+                    console.log('⚠️ [PROXY] Could not delete database, continuing anyway');
+                    resolve();
+                };
+            });
+        }
 
         window.scramjet = new ScramjetController({
             prefix: window.SCRAMJET_PREFIX,
