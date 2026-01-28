@@ -94,8 +94,60 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             },
         });
 
-        await window.scramjet.init();
-        console.log('✅ [PROXY] Scramjet Controller initialized');
+        // Initialize Scramjet with retry logic
+        let initAttempts = 0;
+        const maxAttempts = 3;
+
+        while (initAttempts < maxAttempts) {
+            try {
+                console.log(`🔄 [PROXY] Scramjet init attempt ${initAttempts + 1}/${maxAttempts}...`);
+                await window.scramjet.init();
+
+                // Verify database was created properly
+                await new Promise((resolve, reject) => {
+                    const checkDB = indexedDB.open('$scramjet');
+                    checkDB.onsuccess = (event) => {
+                        const db = event.target.result;
+                        const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
+                        const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
+
+                        if (missingStores.length > 0) {
+                            db.close();
+                            reject(new Error(`Missing object stores: ${missingStores.join(', ')}`));
+                        } else {
+                            console.log(`✅ [PROXY] Verified $scramjet database (${db.objectStoreNames.length} stores)`);
+                            db.close();
+                            resolve();
+                        }
+                    };
+                    checkDB.onerror = () => reject(new Error('Could not verify $scramjet database'));
+                });
+
+                console.log('✅ [PROXY] Scramjet Controller initialized and verified');
+                break; // Success, exit retry loop
+
+            } catch (initErr) {
+                initAttempts++;
+                console.warn(`⚠️ [PROXY] Scramjet init attempt ${initAttempts} failed:`, initErr);
+
+                if (initAttempts >= maxAttempts) {
+                    // Last resort: delete corrupted database and retry once more
+                    console.log('🗑️ [PROXY] Deleting corrupted $scramjet database...');
+                    await new Promise(resolve => {
+                        const delReq = indexedDB.deleteDatabase('$scramjet');
+                        delReq.onsuccess = delReq.onerror = () => resolve();
+                    });
+
+                    // Final attempt after delete
+                    console.log('🔄 [PROXY] Final init attempt after cleanup...');
+                    await window.scramjet.init();
+                    break;
+                }
+
+                // Wait before retry
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
 
         // 6. Configure Service Worker
         if (navigator.serviceWorker.controller) {
