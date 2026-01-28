@@ -29,11 +29,12 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // 3. Handle Cross-Origin Isolation
         if (!window.crossOriginIsolated && window.isSecureContext) {
-            console.log('🔄 [PROXY] Reloading for Isolation headers...');
             if (!sessionStorage.getItem('coi_reloaded')) {
                 sessionStorage.setItem('coi_reloaded', 'true');
-                window.location.reload();
-                return; // Stop execution
+                console.log('🔄 [PROXY] Reloading NOW for Isolation headers...');
+                // Use setTimeout to ensure log is visible, then reload immediately
+                setTimeout(() => window.location.reload(), 10);
+                throw new Error('RELOADING'); // Stop all execution immediately
             }
         } else {
             sessionStorage.removeItem('coi_reloaded');
@@ -91,14 +92,17 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                 const db = event.target.result;
                 const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
                 const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
+
+                // CRITICAL: Close DB immediately to allow deletion if needed
                 db.close();
 
                 if (missingStores.length > 0) {
                     console.log(`⚠️ [PROXY] $scramjet database missing stores: ${missingStores.join(', ')}`);
-                    resolve(true); // Needs reset
+                    // Wait a tick to ensure DB is fully closed
+                    setTimeout(() => resolve(true), 50);
                 } else {
                     console.log(`✅ [PROXY] $scramjet database schema valid (${db.objectStoreNames.length} stores)`);
-                    resolve(false); // Schema is good
+                    resolve(false);
                 }
             };
             checkDB.onerror = () => resolve(true); // Database doesn't exist, needs creation
