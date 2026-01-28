@@ -3,13 +3,13 @@
  * Prevents infinite loading due to corrupted IndexedDB or other initialization failures
  */
 
-(function() {
+(function () {
     'use strict';
 
     // Configuration
     const INIT_TIMEOUT = 15000; // 15 seconds max for initialization
     const ERROR_UI_ID = 'emergency-error-ui';
-    
+
     let initTimer;
     let emergencyUIShown = false;
 
@@ -281,9 +281,6 @@
 
             // Show success message
             btn.innerHTML = '✅ Cleared! Reloading...';
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
 
         } catch (err) {
             console.error('❌ [ERROR HANDLER] Storage cleanup failed:', err);
@@ -297,8 +294,8 @@
 
     // Start initialization timeout
     function startInitTimeout() {
-        console.log(`⏱️ [ERROR HANDLER] Starting ${INIT_TIMEOUT/1000}s initialization timeout`);
-        
+        console.log(`⏱️ [ERROR HANDLER] Starting ${INIT_TIMEOUT / 1000}s initialization timeout`);
+
         initTimer = setTimeout(() => {
             console.error('⏰ [ERROR HANDLER] Initialization timeout exceeded!');
             showEmergencyUI(
@@ -320,10 +317,10 @@
     // Global error handlers
     window.addEventListener('error', (event) => {
         // Only show for critical errors
-        if (event.error && event.error.message && 
-            (event.error.message.includes('IndexedDB') || 
-             event.error.message.includes('database') ||
-             event.error.message.includes('QUOTA_EXCEEDED'))) {
+        if (event.error && event.error.message &&
+            (event.error.message.includes('IndexedDB') ||
+                event.error.message.includes('database') ||
+                event.error.message.includes('QUOTA_EXCEEDED'))) {
             console.error('🚨 [ERROR HANDLER] Critical error detected:', event.error);
             showEmergencyUI(
                 'A critical storage error occurred.',
@@ -334,10 +331,10 @@
 
     window.addEventListener('unhandledrejection', (event) => {
         // Only show for critical promise rejections
-        if (event.reason && event.reason.message && 
-            (event.reason.message.includes('IndexedDB') || 
-             event.reason.message.includes('database') ||
-             event.reason.message.includes('QUOTA_EXCEEDED'))) {
+        if (event.reason && event.reason.message &&
+            (event.reason.message.includes('IndexedDB') ||
+                event.reason.message.includes('database') ||
+                event.reason.message.includes('QUOTA_EXCEEDED'))) {
             console.error('🚨 [ERROR HANDLER] Critical promise rejection:', event.reason);
             showEmergencyUI(
                 'A critical storage error occurred.',
