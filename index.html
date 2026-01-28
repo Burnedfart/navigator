@@ -20,12 +20,8 @@
     <div class="browser-shell">
         <!-- Title Bar / Tabs -->
         <div class="title-bar">
-            <div class="logo-container" id="browser-logo">
-                <svg viewBox="0 0 24 24" fill="none" class="app-logo">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-                    <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" />
-                    <title>Home</title>
-                </svg>
+            <div class="logo-container" id="browser-logo" title="Home">
+                <img src="assets/logo.png" alt="Home" class="app-logo-img">
             </div>
             <div class="tabs-container" id="tabs-container">
                 <!-- Tabs will be injected here -->
@@ -34,6 +30,25 @@
                         <path d="M12 5v14M5 12h14" />
                     </svg>
                 </button>
+            </div>
+        </div>
+
+        <!-- Custom App Modal -->
+        <div id="custom-app-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h3>Add Custom App</h3>
+                <div class="form-group">
+                    <label for="app-name">Name</label>
+                    <input type="text" id="app-name" placeholder="e.g. My Site" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="app-url">URL</label>
+                    <input type="text" id="app-url" placeholder="https://example.com" autocomplete="off">
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-cancel-app" class="btn-secondary">Cancel</button>
+                    <button id="btn-add-app" class="btn-primary">Add App</button>
+                </div>
             </div>
         </div>
 

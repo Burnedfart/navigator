@@ -10,12 +10,23 @@ class Browser {
         this.nextTabId = 1;
         this.maxTabs = 10;
 
+        // Blocked Domains (Base64 Encoded for basic obfuscation)
+        this.blockedKeywords = ["cG9ybg==", "eHh4", "YWR1bHQ=", "c2V4"];
+
         // DOM Elements
         this.tabsContainer = document.getElementById('tabs-container');
         this.viewportsContainer = document.getElementById('viewports-container');
         this.omnibox = document.getElementById('omnibox-input');
         this.newTabBtn = document.getElementById('new-tab-btn');
         this.proxyStatus = document.getElementById('proxy-status');
+        this.logo = document.querySelector('.logo-container img'); // Select the image directly
+
+        // Modal Elements
+        this.modal = document.getElementById('custom-app-modal');
+        this.appNameInput = document.getElementById('app-name');
+        this.appUrlInput = document.getElementById('app-url');
+        this.btnAddApp = document.getElementById('btn-add-app');
+        this.btnCancelApp = document.getElementById('btn-cancel-app');
 
         this.navBtns = {
             back: document.getElementById('nav-back'),
@@ -70,9 +81,13 @@ class Browser {
             const tab = this.getActiveTab();
             if (tab) {
                 if (tab.url === 'browser://home') {
-                    // Re-render home
+                    this.renderHomePage(tab); // Re-render to show any new custom apps
                 } else if (tab.iframe) {
+                    this.setLoading(true);
                     tab.iframe.contentWindow.location.reload();
+                    // Determine when stop loading? Difficult with iframe cross-origin.
+                    // We'll set a timeout fallback or rely on onload if possible.
+                    tab.iframe.onload = () => this.setLoading(false);
                 }
             }
         });
@@ -80,11 +95,62 @@ class Browser {
         this.navBtns.home.addEventListener('click', () => {
             this.navigate('browser://home');
         });
+
+        // Modal Events
+        this.btnAddApp.addEventListener('click', () => this.addCustomApp());
+        this.btnCancelApp.addEventListener('click', () => this.closeModal());
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.closeModal();
+        });
+
+        // Modal Inputs Enter key
+        const handleModalEnter = (e) => {
+            if (e.key === 'Enter') this.addCustomApp();
+            if (e.key === 'Escape') this.closeModal();
+        };
+        this.appNameInput.addEventListener('keydown', handleModalEnter);
+        this.appUrlInput.addEventListener('keydown', handleModalEnter);
     }
 
     updateProxyStatus(status) {
         this.proxyStatus.className = `status-indicator ${status}`;
         this.proxyStatus.title = `Proxy Status: ${status}`;
+
+        if (status === 'loading') {
+            this.setLoading(true);
+        } else {
+            this.setLoading(false);
+        }
+    }
+
+    setLoading(isLoading) {
+        if (this.logo) {
+            if (isLoading) {
+                this.logo.classList.add('spin');
+            } else {
+                this.logo.classList.remove('spin');
+            }
+        }
+    }
+
+    isUrlBlocked(url) {
+        try {
+            const urlObj = new URL(url);
+            const fullString = urlObj.toString().toLowerCase();
+
+            // Check against basic keywords
+            for (const keywordB64 of this.blockedKeywords) {
+                const keyword = atob(keywordB64);
+                if (fullString.includes(keyword)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (e) {
+            // If invalid URL, allow logic elsewhere to handle or block if it looks suspicious? 
+            // For now, assume valid URLs passed here.
+            return false;
+        }
     }
 
     createTab(url = 'browser://home') {
@@ -97,8 +163,9 @@ class Browser {
             title: 'New Tab',
             favicon: '',
             iframe: null,
-            scramjetWrapper: null, // Scramjet frame controller
-            homeElement: null
+            scramjetWrapper: null,
+            homeElement: null,
+            element: null
         };
 
         // Create Tab UI
@@ -106,7 +173,7 @@ class Browser {
         tabEl.className = 'tab';
         tabEl.dataset.id = id;
         tabEl.innerHTML = `
-            <div class="tab-favicon"></div>
+            <img class="tab-favicon" src="" style="display:none;"> 
             <div class="tab-title">New Tab</div>
             <div class="tab-close">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,14 +194,10 @@ class Browser {
             this.closeTab(id);
         });
 
-        // Insert before the new tab button which is now inside the container
         this.tabsContainer.insertBefore(tabEl, this.newTabBtn);
         tab.element = tabEl;
 
-        // Create initial viewport containers
-        // We defer scramjet frame creation until navigation to a real URL
         this.createViewport(tab);
-
         this.tabs.push(tab);
         this.switchTab(id);
 
@@ -144,37 +207,116 @@ class Browser {
     }
 
     createViewport(tab) {
-        // Home Page Element
         const homeEl = document.createElement('div');
         homeEl.className = 'home-page hidden';
-        homeEl.innerHTML = `
-            <div class="home-logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                </svg>
-            </div>
-            <div class="home-grid">
-                <div class="grid-item" onclick="app.navigate('https://google.com')">
-                    <div class="item-icon">G</div>
-                    <div class="item-title">Google</div>
-                </div>
-                <div class="grid-item" onclick="app.navigate('https://discord.com')">
-                    <div class="item-icon">D</div>
-                    <div class="item-title">Discord</div>
-                </div>
-                <div class="grid-item" onclick="app.navigate('https://youtube.com')">
-                    <div class="item-icon">Y</div>
-                    <div class="item-title">YouTube</div>
-                </div>
-                <div class="grid-item" onclick="app.navigate('https://github.com')">
-                    <div class="item-icon">gh</div>
-                    <div class="item-title">GitHub</div>
-                </div>
-            </div>
-        `;
         this.viewportsContainer.appendChild(homeEl);
         tab.homeElement = homeEl;
+
+        this.renderHomePage(tab);
+    }
+
+    renderHomePage(tab) {
+        if (!tab.homeElement) return;
+
+        // Default Apps
+        const apps = [
+            { name: 'Google', url: 'https://google.com', icon: 'G' },
+            { name: 'Discord', url: 'https://discord.com', icon: 'D' },
+            { name: 'YouTube', url: 'https://youtube.com', icon: 'Y' },
+            { name: 'GitHub', url: 'https://github.com', icon: 'gh' }
+        ];
+
+        // Custom Apps from LocalStorage
+        const customApps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
+        const allApps = [...apps, ...customApps];
+
+        let gridHtml = `
+            <div class="home-logo">
+                <img src="assets/logo.png" style="width: 80px; height: 80px; object-fit: contain;">
+            </div>
+            <div class="home-grid">
+        `;
+
+        allApps.forEach(app => {
+            // Determine icon display
+            let iconContent = app.icon || app.name.charAt(0).toUpperCase();
+
+            gridHtml += `
+                <div class="grid-item" data-url="${app.url}">
+                    <div class="item-icon">${iconContent}</div>
+                    <div class="item-title">${app.name}</div>
+                </div>
+            `;
+        });
+
+        // Add "Add App" Button
+        gridHtml += `
+            <div class="grid-item add-app-btn" id="add-app-trigger-${tab.id}">
+                <div class="item-icon">+</div>
+                <div class="item-title">Add App</div>
+            </div>
+        `;
+
+        gridHtml += `</div>`;
+        tab.homeElement.innerHTML = gridHtml;
+
+        // Attach Event Listeners for Grid Items
+        tab.homeElement.querySelectorAll('.grid-item:not(.add-app-btn)').forEach(item => {
+            item.addEventListener('click', () => {
+                const url = item.getAttribute('data-url');
+                this.navigate(url);
+            });
+        });
+
+        // Attach Event Listener for Add App
+        const addBtn = tab.homeElement.querySelector(`#add-app-trigger-${tab.id}`);
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.openModal();
+            });
+        }
+    }
+
+    openModal() {
+        this.modal.classList.remove('hidden');
+        this.appNameInput.value = '';
+        this.appUrlInput.value = '';
+        this.appNameInput.focus();
+    }
+
+    closeModal() {
+        this.modal.classList.add('hidden');
+    }
+
+    addCustomApp() {
+        const name = this.appNameInput.value.trim();
+        let url = this.appUrlInput.value.trim();
+
+        if (!name || !url) return;
+
+        try {
+            // Basic URL validation/fix
+            if (!url.startsWith('http')) {
+                url = 'https://' + url;
+            }
+            new URL(url); // Will throw if invalid
+        } catch (e) {
+            alert('Invalid URL');
+            return;
+        }
+
+        const customApps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
+        customApps.push({ name, url });
+        localStorage.setItem('custom_apps', JSON.stringify(customApps));
+
+        this.closeModal();
+
+        // Re-render home page for all tabs that are currently on home
+        this.tabs.forEach(t => {
+            if (t.url === 'browser://home') {
+                this.renderHomePage(t);
+            }
+        });
     }
 
     switchTab(id) {
@@ -199,10 +341,14 @@ class Browser {
                 if (newTab.iframe) newTab.iframe.classList.remove('active');
                 this.omnibox.value = '';
                 this.omnibox.placeholder = 'Search or enter address';
+                this.setLoading(false); // Home is static
             } else {
                 if (newTab.homeElement) newTab.homeElement.classList.add('hidden');
                 if (newTab.iframe) newTab.iframe.classList.add('active');
                 this.omnibox.value = newTab.url;
+                // If it was loading? We don't track per-tab loading state deeply in this simple refactor, 
+                // but checking connection/spin could be global or per active tab. 
+                // For now, simplicity: active tab determines spinner.
             }
         }
     }
@@ -220,14 +366,11 @@ class Browser {
 
         this.tabs.splice(tabIndex, 1);
 
-        // Switch to neighbor if active
         if (this.activeTabId === id) {
             if (this.tabs.length > 0) {
-                // Try right, then left
                 const nextTab = this.tabs[tabIndex] || this.tabs[tabIndex - 1];
                 this.switchTab(nextTab.id);
             } else {
-                // Create new generic tab if all closed
                 this.createTab();
             }
         }
@@ -243,7 +386,7 @@ class Browser {
         this.navigate(input);
     }
 
-    navigate(input) {
+    async navigate(input) {
         if (!window.ProxyService.initialized) {
             alert('Proxy is still loading...');
             return;
@@ -260,6 +403,13 @@ class Browser {
             }
         }
 
+        // BLOCKING CHECK
+        if (this.isUrlBlocked(url)) {
+            // Cancel and redirect home
+            this.navigate('browser://home');
+            return;
+        }
+
         const tab = this.getActiveTab();
         if (!tab) return;
 
@@ -268,41 +418,103 @@ class Browser {
         // UI Updates
         tab.title = new URL(url).hostname || 'Browse';
         tab.element.querySelector('.tab-title').textContent = tab.title;
+        // Reset Favicon
+        this.updateFavicon(tab, '');
+
         this.omnibox.value = url;
 
         if (url === 'browser://home') {
             if (tab.iframe) tab.iframe.classList.remove('active');
             tab.homeElement.classList.remove('hidden');
+            this.setLoading(false);
         } else {
             tab.homeElement.classList.add('hidden');
+            this.setLoading(true);
 
-            // Create Scramjet Frame if not exists
             if (!tab.scramjetWrapper || !tab.iframe) {
                 if (window.scramjet) {
-                    console.log('Creates scramjet frame for tab', tab.id);
                     tab.scramjetWrapper = window.scramjet.createFrame();
                     tab.iframe = tab.scramjetWrapper.frame;
                     tab.iframe.classList.add('browser-viewport');
-                    tab.iframe.classList.add('active'); // Since we are navigating
-
-                    // Style connection
+                    tab.iframe.classList.add('active');
                     tab.iframe.style.border = 'none';
                     tab.iframe.width = '100%';
                     tab.iframe.style.position = 'absolute';
-
                     this.viewportsContainer.appendChild(tab.iframe);
+
+                    // Add load listener to stop spinner
+                    tab.iframe.onload = () => {
+                        if (this.activeTabId === tab.id) {
+                            this.setLoading(false);
+                        }
+                    };
                 } else {
                     console.error('Scramjet unavailable');
+                    this.setLoading(false);
                     return;
                 }
             }
 
             tab.iframe.classList.add('active');
 
-            // Perform Navigation via Scramjet Wrapper
             if (tab.scramjetWrapper) {
-                tab.scramjetWrapper.go(url);
+                try {
+                    await tab.scramjetWrapper.go(url);
+                    // Fetch Favicon separately since we can't easily access iframe DOM
+                    this.fetchFavicon(tab, url);
+                } catch (e) {
+                    console.error("Navigation failed", e);
+                    this.setLoading(false);
+                }
             }
+        }
+    }
+
+    updateFavicon(tab, src) {
+        tab.favicon = src;
+        const iconEl = tab.element.querySelector('.tab-favicon');
+        if (src) {
+            iconEl.src = src;
+            iconEl.style.display = 'block';
+
+            // If fallback for load error
+            iconEl.onerror = () => {
+                iconEl.style.display = 'none'; // Fallback to blank
+            };
+        } else {
+            iconEl.style.display = 'none'; // Blank circle is default via CSS effectively or just hidden image
+            // CSS for .tab-favicon has a background-color #ccc so hidden img shows that.
+        }
+    }
+
+    async fetchFavicon(tab, url) {
+        // Attempt to fetch the page content to parse for favicon
+        // We use fetch() - if CORS fails, we might fail to get it. 
+        // As a proxy, ideally we'd fetch through the proxy helper if available, but window.fetch 
+        // will go through the Service Worker if it intercepts matching requests.
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+
+            // Simple regex to find <link rel="icon" href="...">
+            // Supports: rel="icon", rel="shortcut icon", href can be relative or absolute
+            const linkRegex = /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["'][^>]*>/i;
+            const match = text.match(linkRegex);
+
+            if (match && match[1]) {
+                let faviconUrl = match[1];
+                // Resolve relative URLs
+                faviconUrl = new URL(faviconUrl, url).href;
+                this.updateFavicon(tab, faviconUrl);
+            } else {
+                // Try default only if not found (less strict per prompt, but good fallback)
+                // Prompt says: "If favicon fetch fails: Fall back to a blank circle."
+                // So we don't try strict guessing if regex fails.
+                this.updateFavicon(tab, '');
+            }
+        } catch (e) {
+            console.warn('Favicon fetch failed', e);
+            this.updateFavicon(tab, '');
         }
     }
 }
