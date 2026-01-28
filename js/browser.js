@@ -40,6 +40,7 @@ class Browser {
 
     async init() {
         this.bindEvents();
+        this.checkThemeContrast();
         this.updateProxyStatus('loading');
 
         // Create initial tab (Home)
@@ -51,6 +52,39 @@ class Browser {
         } catch (e) {
             this.updateProxyStatus('error');
             alert('Proxy initialization failed. Please reload.');
+        }
+    }
+
+    checkThemeContrast() {
+        // Automatic Logo Contrast Detection
+        const root = document.documentElement;
+        const bgColor = getComputedStyle(root).getPropertyValue('--window-bg').trim();
+
+        // Simple brightness check
+        const isDark = (color) => {
+            let r, g, b;
+            if (color.startsWith('#')) {
+                const hex = color.replace('#', '');
+                r = parseInt(hex.substr(0, 2), 16);
+                g = parseInt(hex.substr(2, 2), 16);
+                b = parseInt(hex.substr(4, 2), 16);
+            } else if (color.startsWith('rgb')) {
+                const parts = color.match(/\d+/g);
+                r = parseInt(parts[0]);
+                g = parseInt(parts[1]);
+                b = parseInt(parts[2]);
+            } else {
+                return false; // Fallback, assume light
+            }
+            // Luminance formula
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            return brightness < 128; // < 128 is dark
+        };
+
+        if (isDark(bgColor)) {
+            root.style.setProperty('--logo-filter', 'none'); // White logo on dark
+        } else {
+            root.style.setProperty('--logo-filter', 'invert(1)'); // Black logo on light
         }
     }
 
