@@ -25,7 +25,9 @@ const state = {
     currentUrl: null,
     currentContent: null,
     isEncodingVisible: false,
-    activeTab: 'rendered'
+    activeTab: 'rendered',
+    transportReady: false,
+    scramjetFrame: null // Reuse the same frame for all navigations
 };
 
 // ============================================================================
@@ -414,100 +416,69 @@ async function handleFormSubmit(event) {
     setLoading(true);
 
     try {
-        // CRITICAL: Configure transport BEFORE navigation (like official demo)
+        // PERFORMANCE: Check transport readiness without re-initialization
         if (!window.bareMuxConnection) {
             throw new Error('BareMux not initialized. Please refresh the page.');
         }
 
-        // Set WISP URL
-        const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
-
-        // Configure transport (matching official demo's approach)
-        // They use libcurl-transport with { websocket: wispUrl }
-        const transportPath = new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href;
-        const currentTransport = await window.bareMuxConnection.getTransport();
-
-        if (currentTransport !== transportPath) {
-            console.log('🔧 [PROXY] Configuring BareMux transport:', transportPath);
-            await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
-            console.log('✅ [PROXY] Transport configured');
+        if (!window.scramjet) {
+            throw new Error('Scramjet not initialized. Please refresh the page.');
         }
 
-        // CRITICAL: Wait for transport to be READY (ready: true)
-        // Your console showed: ready: false - we MUST wait for ready: true
-        console.log('⏳ [PROXY] Waiting for transport to be ready...');
-        let attempts = 0;
-        const maxAttempts = 50; // 5 seconds max
-        while (attempts < maxAttempts) {
-            // The transport needs time for WebSocket handshake and initialization
-            // Minimum 1 second wait for libcurl WISP connection
-            if (attempts >= 10) { // At least 1000ms for WISP handshake
-                console.log('✅ [PROXY] Transport initialization complete (1000ms+ elapsed)');
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+        // PERFORMANCE: Only wait if transport isn't ready yet (first navigation only)
+        if (!state.transportReady) {
+            console.log('⏳ [PROXY] First navigation - checking transport readiness...');
+            // Brief wait to ensure WISP connection is established (first time only)
+            await new Promise(resolve => setTimeout(resolve, 200));
+            state.transportReady = true;
         }
 
-        if (attempts >= maxAttempts) {
-            throw new Error('Transport failed to initialize within timeout');
+        // Hide existing static iframe/content
+        if (elements.contentFrame) {
+            elements.contentFrame.style.display = 'none';
         }
 
-        // NOW use Scramjet Controller to create frame and navigate
-        if (window.scramjet) {
-            // Hide existing iframe/content
-            if (elements.contentFrame) {
-                elements.contentFrame.style.display = 'none';
-            }
+        // Update metadata with basic info
+        updateMetadata({
+            statusCode: 200,
+            domain: new URL(url).hostname,
+            contentType: 'text/html (via Scramjet + WISP)',
+            contentLength: 'N/A',
+            fetchTimeMs: 0
+        });
 
-            // Update metadata with basic info
-            updateMetadata({
-                statusCode: 200,
-                domain: new URL(url).hostname,
-                contentType: 'text/html (via Scramjet + WISP)',
-                contentLength: 'N/A',
-                fetchTimeMs: 0
-            });
+        // PERFORMANCE: Reuse existing frame instead of recreating
+        if (!state.scramjetFrame) {
+            console.log('🆕 [PROXY] Creating Scramjet frame (one-time)');
+            state.scramjetFrame = window.scramjet.createFrame();
+            state.scramjetFrame.frame.id = 'sj-frame';
+            state.scramjetFrame.frame.style.cssText = 'width: 100%; height: 100%; border: none;';
 
-            // Remove existing frame if present
-            const existingFrame = document.getElementById('sj-frame');
-            if (existingFrame) {
-                existingFrame.remove();
-            }
+            // Append to rendered tab once
+            elements.renderedTab.appendChild(state.scramjetFrame.frame);
+        }
 
-            // Create new frame
-            const frame = window.scramjet.createFrame();
-            frame.frame.id = 'sj-frame';
-            frame.frame.style.cssText = 'width: 100%; height: 100%; border: none;';
+        // Navigate using existing frame - much faster!
+        console.log('🚀 [PROXY] Navigating to:', url);
+        state.scramjetFrame.go(url);
 
-            // Append to rendered tab
-            elements.renderedTab.appendChild(frame.frame);
+        // Show the rendered content
+        elements.emptyState?.classList.add('hidden');
+        elements.renderedTab?.classList.remove('hidden');
+        elements.errorDisplay?.classList.remove('visible');
 
-            // Use Scramjet's go() method - it properly encodes the URL with the codec
-            console.log('🚀 [PROXY] Navigating to:', url);
-            frame.go(url);
-
-            // Show the rendered content
-            elements.emptyState?.classList.add('hidden');
-            elements.renderedTab?.classList.remove('hidden');
-            elements.errorDisplay?.classList.remove('visible');
-
-            // Update source tab with info
-            state.currentContent = `<!-- Loaded via Scramjet Proxy + WISP -->
+        // Update source tab with info
+        state.currentContent = `<!-- Loaded via Scramjet Proxy + WISP -->
 <!-- URL: ${url} -->
 <!-- Transport: libcurl over WISP -->
 <!-- Backend: ${window.bareMuxConnection ? 'Connected' : 'Disconnected'} -->`;
 
-            if (elements.sourceCode) {
-                elements.sourceCode.textContent = state.currentContent;
-            }
-
-            // Update encoding display
-            updateEncodingDisplay(url, frame.frame.src);
-
-        } else {
-            throw new Error('Scramjet not initialized. Please refresh the page.');
+        if (elements.sourceCode) {
+            elements.sourceCode.textContent = state.currentContent;
         }
+
+        // Update encoding display
+        updateEncodingDisplay(url, state.scramjetFrame.frame.src);
 
     } catch (error) {
         displayError({

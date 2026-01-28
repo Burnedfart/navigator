@@ -471,10 +471,28 @@
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://my-site.boxathome.net:3000/wisp/";
                 console.log('🔌 [MAIN] Wisp URL:', wispUrl);
 
-                // Set Transport - Using libcurl transport (like official demo)
+                // PERFORMANCE: Set Transport ONCE during initialization with proper wait
                 const transportPath = new URL("./lib/libcurl/index.mjs", window.APP_BASE_URL).href;
-                await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
-                console.log('✅ [MAIN] BareMux configured with libcurl transport');
+
+                // Check if transport was already initialized in this session
+                const isTransportCached = sessionStorage.getItem('transport_initialized') === 'true';
+
+                if (!isTransportCached) {
+                    console.log('🔧 [MAIN] Initializing BareMux transport (first time)...');
+                    await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
+
+                    // Wait for WISP connection handshake (only on first init)
+                    console.log('⏳ [MAIN] Waiting for WISP handshake...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    sessionStorage.setItem('transport_initialized', 'true');
+                    console.log('✅ [MAIN] BareMux transport ready');
+                } else {
+                    console.log('⚡ [MAIN] BareMux transport already initialized (using cached)');
+                    // Ensure transport is set (very fast, no wait needed)
+                    await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
+                }
+
                 console.log('🎉 [MAIN] Proxy fully ready');
 
             } catch (err) {

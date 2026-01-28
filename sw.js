@@ -32,18 +32,52 @@ if (typeof self.$scramjetLoadWorker === 'function') {
 }
 
 let scramjet;
+let scramjetConfigLoaded = false;
+
 if (scramjetBundle) {
     const { ScramjetServiceWorker } = scramjetBundle;
-    // CRITICAL: Match official demo - NO constructor options!
-    // ScramjetServiceWorker gets config via loadConfig() from main page's BareMux
     scramjet = new ScramjetServiceWorker();
-    console.log('SW: ✅ ScramjetServiceWorker created (no options - uses BareMux config)');
+    console.log('SW: ✅ ScramjetServiceWorker created');
 } else {
     console.error('SW: ❌ Scramjet bundle not found! __scramjet$bundle is undefined.');
 }
 
+// Cache name for static resources
+const CACHE_NAME = 'scramjet-proxy-cache-v1';
+const STATIC_CACHE_PATTERNS = [
+    /\.css$/,
+    /\.js$/,
+    /\.woff2?$/,
+    /\.png$/,
+    /\.jpg$/,
+    /\.svg$/,
+    /\.ico$/,
+];
+
+// Check if URL matches static resource patterns
+function isStaticResource(url) {
+    return STATIC_CACHE_PATTERNS.some(pattern => pattern.test(url));
+}
+
+// PERFORMANCE: Load config ONCE at startup, not on every request
+async function ensureConfigLoaded() {
+    if (!scramjetConfigLoaded && scramjet) {
+        try {
+            await scramjet.loadConfig();
+            scramjetConfigLoaded = true;
+            console.log('SW: ✅ Config loaded (one-time)');
+        } catch (err) {
+            console.warn('SW: ⚠️ Failed to load config:', err);
+        }
+    }
+}
+
+// Load config immediately after initialization
+ensureConfigLoaded();
+
 async function handleRequest(event) {
     const url = event.request.url;
+    const isNavigationRequest = event.request.mode === 'navigate' || event.request.destination === 'document';
 
     // Failsafe: if scramjet failed to initialize, fall back to network immediately
     if (!scramjet) {
@@ -52,44 +86,103 @@ async function handleRequest(event) {
     }
 
     try {
-        // Load config from main page's BareMux connection
-        await scramjet.loadConfig();
+        // PERFORMANCE: Only ensure config on first request, not every request
+        if (!scramjetConfigLoaded) {
+            await ensureConfigLoaded();
+        }
 
         // Check if this request should be proxied
         if (scramjet.route(event)) {
-            console.log(`SW: 🤖 PROXY for ${url}`);
+            console.log(`SW: 🚀 PROXY for ${url}`);
+
+            // PERFORMANCE: Use cache-first strategy for static resources
+            if (isStaticResource(url)) {
+                const cache = await caches.open(CACHE_NAME);
+                const cachedResponse = await cache.match(event.request);
+
+                if (cachedResponse) {
+                    console.log(`SW: 💾 Cache HIT for ${url}`);
+                    // Return cached, but update cache in background
+                    event.waitUntil(
+                        scramjet.fetch(event).then(response => {
+                            if (response.ok) {
+                                cache.put(event.request, response.clone());
+                            }
+                        }).catch(() => { })
+                    );
+                    return cachedResponse;
+                }
+            }
+
             const response = await scramjet.fetch(event);
 
-            // Inject COOP/COEP headers for SharedArrayBuffer support
+            // PERFORMANCE: Only inject COOP/COEP on navigation requests
+            // Scramjet handles headers for proxied content, we only need them for isolation
+            if (isNavigationRequest) {
+                const newHeaders = new Headers(response.headers);
+                newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+                const modifiedResponse = new Response(response.body, {
+                    status: response.status === 0 ? 200 : response.status,
+                    statusText: response.statusText,
+                    headers: newHeaders,
+                });
+
+                // Cache static resources
+                if (isStaticResource(url) && response.ok) {
+                    const cache = await caches.open(CACHE_NAME);
+                    cache.put(event.request, modifiedResponse.clone());
+                }
+
+                return modifiedResponse;
+            }
+
+            // For non-navigation proxied requests, return as-is
+            return response;
+        }
+
+        // Standard network request for app files
+        console.log(`SW: 🌐 NETWORK for ${url}`);
+
+        // PERFORMANCE: Cache app's own static files
+        if (isStaticResource(url)) {
+            const cache = await caches.open(CACHE_NAME);
+            const cachedResponse = await cache.match(event.request);
+
+            if (cachedResponse) {
+                console.log(`SW: 💾 Cache HIT for ${url}`);
+                return cachedResponse;
+            }
+
+            const response = await fetch(event.request);
+            if (response.ok) {
+                cache.put(event.request, response.clone());
+            }
+            return response;
+        }
+
+        // PERFORMANCE: Only inject isolation headers on navigation requests for app
+        const response = await fetch(event.request);
+
+        if (isNavigationRequest) {
             const newHeaders = new Headers(response.headers);
             newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
             newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
 
-            return new Response(response.body, {
-                status: response.status === 0 ? 200 : response.status,
-                statusText: response.statusText,
-                headers: newHeaders,
-            });
+            try {
+                return new Response(response.body, {
+                    status: response.status === 0 ? 200 : response.status,
+                    statusText: response.statusText,
+                    headers: newHeaders,
+                });
+            } catch (wrapErr) {
+                // Opaque responses cannot be wrapped
+                return response;
+            }
         }
 
-        // Standard network request - still inject COOP/COEP for all responses
-        console.log(`SW: 🤖 NETWORK for ${url}`);
-        const response = await fetch(event.request);
-
-        const newHeaders = new Headers(response.headers);
-        newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-        newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-
-        try {
-            return new Response(response.body, {
-                status: response.status === 0 ? 200 : response.status,
-                statusText: response.statusText,
-                headers: newHeaders,
-            });
-        } catch (wrapErr) {
-            // Opaque responses cannot be wrapped
-            return response;
-        }
+        return response;
     } catch (err) {
         console.error(`SW: ❌ Error handling ${url}:`, err);
         return new Response(
@@ -103,6 +196,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(handleRequest(event));
 });
 
-
-// Message listener removed - scramjet.configure() doesn't exist in 2.0.0-alpha
-// Configuration is handled via loadConfig() which reads from BareMux
+// Listen for config updates from main page
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'invalidate_config') {
+        scramjetConfigLoaded = false;
+        console.log('SW: 🔄 Config invalidated, will reload on next request');
+    }
+});
