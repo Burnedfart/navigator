@@ -150,9 +150,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // Disable sourcemaps in iframe mode to prevent cross-origin errors
         if (isInIframe) {
-            scramjetConfig.sourcemaps = {
-                enabled: false
-            };
+            scramjetConfig.sourcemaps = false; // Correct format: boolean not object
             console.log('🖼️ [PROXY] Disabled sourcemaps for iframe compatibility');
         }
 
