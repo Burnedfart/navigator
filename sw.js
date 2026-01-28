@@ -43,7 +43,8 @@ if (scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v3'; // Bumped for CSP stripping fix
+// Cache name for static resources
+const CACHE_NAME = 'scramjet-proxy-cache-v4'; // Bumped for COEP relaxation
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -144,16 +145,18 @@ async function handleRequest(event) {
             let newHeaders = stripRestrictiveHeaders(response.headers);
 
             // PERFORMANCE: Only inject COOP/COEP on navigation requests
-            // Scramjet handles headers for proxied content, we only need them for isolation
             if (isNavigationRequest) {
-                newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
 
                 if (isIframe) {
-                    // Allow iframe embedding on cross-origin sites like sites.google.com
-                    newHeaders.set("Cross-Origin-Opener-Policy", "unsafe-none");
-                    console.log('SW: 🖼️ Iframe context detected, stripped CSP headers');
+                    // IFRAME MODE: Relax ALL isolation headers
+                    // We cannot get crossOriginIsolated in a generic iframe (like Google Sites)
+                    // so enforcing COEP just blocks resources without enabling SharedArrayBuffer.
+                    newHeaders.delete("Cross-Origin-Embedder-Policy");
+                    newHeaders.delete("Cross-Origin-Opener-Policy");
+                    console.log('SW: 🖼️ Iframe detected - Removed COEP/COOP to preventing blocking');
                 } else {
-                    // Standalone mode: stronger isolation
+                    // STANDALONE MODE: Enforce isolation for SharedArrayBuffer support
+                    newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
                     newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
                 }
             }
