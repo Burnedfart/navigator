@@ -137,7 +137,8 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             });
         }
 
-        window.scramjet = new ScramjetController({
+        // Configure Scramjet with iframe-safe settings
+        const scramjetConfig = {
             prefix: window.SCRAMJET_PREFIX,
             wisp: wispUrl,
             files: {
@@ -145,7 +146,17 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                 all: new URL("./lib/scramjet/scramjet.all.js", window.APP_BASE_URL).href,
                 sync: new URL("./lib/scramjet/scramjet.sync.js", window.APP_BASE_URL).href,
             },
-        });
+        };
+
+        // Disable sourcemaps in iframe mode to prevent cross-origin errors
+        if (isInIframe) {
+            scramjetConfig.sourcemaps = {
+                enabled: false
+            };
+            console.log('🖼️ [PROXY] Disabled sourcemaps for iframe compatibility');
+        }
+
+        window.scramjet = new ScramjetController(scramjetConfig);
 
         // Initialize Scramjet with retry logic
         let initAttempts = 0;

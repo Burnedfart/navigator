@@ -43,7 +43,7 @@ if (scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v1';
+const CACHE_NAME = 'scramjet-proxy-cache-v2'; // Bumped for iframe fix
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
