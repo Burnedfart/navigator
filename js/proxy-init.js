@@ -10,6 +10,11 @@ window.ProxyService = {
 
 window.ProxyService.ready = new Promise(async (resolve, reject) => {
     try {
+        // Signal to error handler that initialization has started
+        if (window.ErrorHandler) {
+            window.ErrorHandler.startTimeout();
+        }
+
         // Detect iframe embedding
         const isInIframe = window.self !== window.top;
         if (isInIframe) {
@@ -235,10 +240,25 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         }
 
         window.ProxyService.initialized = true;
+
+        // Signal to error handler that initialization succeeded
+        if (window.ErrorHandler) {
+            window.ErrorHandler.stopTimeout();
+        }
+
         resolve(true);
 
     } catch (err) {
         console.error('❌ [PROXY] Initialization failed:', err);
+
+        // Show emergency UI on critical failure
+        if (window.ErrorHandler) {
+            window.ErrorHandler.show(
+                'Proxy initialization failed. This may be due to corrupted storage or network issues.',
+                err.message || String(err)
+            );
+        }
+
         reject(err);
     }
 });
