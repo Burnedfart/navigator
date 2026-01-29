@@ -319,9 +319,10 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         if (swController) {
             swController.postMessage({
-                type: 'init_complete'
+                type: 'init_complete',
+                config: scramjetConfig
             });
-            console.log('📨 [PROXY] Sent init_complete signal to Service Worker');
+            console.log('📨 [PROXY] Sent init_complete signal with config to Service Worker');
         } else {
             console.warn('⚠️ [PROXY] No SW controller available, skipping init_complete signal');
             // This is OK - SW will wait for signal, but page can still function

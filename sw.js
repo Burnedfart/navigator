@@ -14,7 +14,7 @@ try {
 
 // Ensure immediate control
 self.addEventListener('install', (event) => {
-    console.log('SW: 📥 Installing version 12 (Stack overflow fix)...');
+    console.log('SW: 📥 Installing version 13 (Config & Path fixes)...');
     self.skipWaiting();
 });
 
@@ -54,7 +54,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v12'; // Stack overflow fix
+const CACHE_NAME = 'scramjet-proxy-cache-v13'; // Config & Path fixes
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -111,16 +111,18 @@ async function handleRequest(event) {
 
     // If scramjet hasn't been initialized yet, pass through all requests
     if (!scramjet || !scramjetConfigLoaded) {
-        // CRITICAL: Check if this is an external URL that SHOULD be proxied.
-        // If it is, and we're not ready, we CANNOT fetch it directly (CORS).
+        // CRITICAL: Check if this is a URL that SHOULD be proxied.
+        // On GitHub Pages, proxied URLs start with our origin but contain '/service/'
+        const isProxied = url.includes('/service/http');
         const isExternal = url.startsWith('http') && !url.startsWith(self.location.origin);
-        if (isExternal) {
-            console.warn(`SW: ⏳ Proxy not ready for external URL: ${url}. Queueing...`);
+
+        if (isProxied || isExternal) {
+            console.warn(`SW: ⏳ Proxy not ready for URL: ${url}. Showing loading state...`);
             return new Response(`
                 <html><body style="font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#111;color:#eee;text-align:center;">
                     <h2>Initializing Proxy...</h2>
-                    <p>Please wait while we establish a secure connection.</p>
-                    <script>setTimeout(() => location.reload(), 1500);</script>
+                    <p>Establishing connection to the proxy network.</p>
+                    <script>setTimeout(() => location.reload(), 2000);</script>
                 </body></html>
             `, { status: 503, headers: { 'Content-Type': 'text/html' } });
         }
@@ -241,11 +243,16 @@ self.addEventListener('message', async (event) => {
     if (event.data?.type === 'init_complete') {
         console.log('SW: 📨 Received init_complete signal');
 
+        const config = event.data.config;
+
         // NOW it's safe to create the ScramjetServiceWorker instance
         if (!scramjet && scramjetBundle) {
             const { ScramjetServiceWorker } = scramjetBundle;
-            scramjet = new ScramjetServiceWorker();
-            console.log('SW: ✅ ScramjetServiceWorker created');
+            scramjet = new ScramjetServiceWorker(config);
+            console.log('SW: ✅ ScramjetServiceWorker created with config');
+        } else if (scramjet && config) {
+            scramjet.config = config;
+            console.log('SW: 🔄 Scramjet config updated');
         }
 
         await ensureConfigLoaded();
@@ -253,7 +260,10 @@ self.addEventListener('message', async (event) => {
         // Pre-load WASM rewriter in Service Worker context
         console.log('SW: 📦 Pre-loading WASM rewriter...');
         try {
-            const wasmUrl = new URL("./lib/scramjet/scramjet.wasm.wasm", self.location.origin).href;
+            // Use config path if available, else fallback to relative
+            const wasmUrl = (config?.files?.wasm) || new URL("./lib/scramjet/scramjet.wasm.wasm", self.location.href).href;
+            console.log(`SW: 🔍 Fetching WASM from: ${wasmUrl}`);
+
             const wasmResponse = await fetch(wasmUrl);
             if (!wasmResponse.ok) throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
             const wasmBuffer = await wasmResponse.arrayBuffer();
