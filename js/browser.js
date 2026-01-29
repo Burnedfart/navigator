@@ -455,7 +455,7 @@ class Browser {
             if (input.includes('.') && !input.includes(' ')) {
                 url = 'https://' + input;
             } else {
-                url = 'https://www.google.com/search?q=' + encodeURIComponent(input);
+                url = 'https://bing.com/search?q=' + encodeURIComponent(input);
             }
         }
 
