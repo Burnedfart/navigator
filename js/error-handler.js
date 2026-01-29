@@ -7,7 +7,7 @@
     'use strict';
 
     // Configuration
-    const INIT_TIMEOUT = 15000; // 15 seconds max for initialization
+    const INIT_TIMEOUT = 5000; // 5 seconds max for initialization (reduced from 15s)
     const ERROR_UI_ID = 'emergency-error-ui';
 
     let initTimer;
@@ -309,7 +309,7 @@
             console.error('⏰ [ERROR HANDLER] Initialization timeout exceeded!');
             showEmergencyUI(
                 'Initialization is taking too long. The application may be stuck due to corrupted storage.',
-                'Timeout: Initialization exceeded 15 seconds'
+                'Timeout: Initialization exceeded 5 seconds'
             );
         }, INIT_TIMEOUT);
     }

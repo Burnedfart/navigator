@@ -23,19 +23,44 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         console.log('🔧 [PROXY] Starting initialization...');
 
-        // 1. Calculate Base Paths
+        // 1. PRE-FLIGHT HEALTH CHECK (NEW)
+        if (window.StorageHealth) {
+            console.log('🔍 [PROXY] Running pre-flight storage health check...');
+            const healthResult = await window.StorageHealth.performHealthCheck();
+
+            if (!healthResult.healthy && !healthResult.autoFixed) {
+                throw new Error(`Storage health check failed: ${healthResult.issues.join(', ')}`);
+            }
+
+            if (healthResult.autoFixed) {
+                console.log('🔧 [PROXY] Storage issues auto-fixed, proceeding with clean state');
+            }
+        } else {
+            console.warn('⚠️ [PROXY] Storage health module not loaded, skipping pre-flight check');
+        }
+
+        // 2. Calculate Base Paths
         window.APP_BASE_URL = new URL("./", window.location.href).href;
         window.SCRAMJET_PREFIX = new URL("./service/", window.APP_BASE_URL).pathname;
 
-        // 2. Register Service Worker
+        // 3. Register Service Worker with improved options
         if (!('serviceWorker' in navigator)) {
             throw new Error('Service Worker not supported');
         }
 
-        const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js', {
+            scope: './',
+            updateViaCache: 'none'  // Prevent cache issues on updates
+        });
         console.log('✅ [SW] Registered:', registration.scope);
 
-        await navigator.serviceWorker.ready;
+        // Wait for SW to be ready with timeout
+        await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Service Worker ready timeout')), 5000)
+            )
+        ]);
         console.log('✅ [SW] Ready and Active');
 
         // 3. Handle Cross-Origin Isolation
@@ -149,64 +174,51 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             }
         }
 
-        // Check if database exists and has correct schema
-        const needsReset = await new Promise((resolve) => {
-            try {
-                const checkDB = indexedDB.open('$scramjet');
-                checkDB.onsuccess = (event) => {
-                    const db = event.target.result;
-                    const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
-                    const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
+        // DIAGNOSTIC: Test WebSocket connectivity before proceeding
+        if (window.WispHealthChecker) {
+            console.log('🔬 [PROXY] Running WebSocket diagnostics...');
+            const healthUrl = wispUrl.replace(/^wss?/, location.protocol.replace(':', ''))
+                .replace('/wisp/', '/api/health');
 
-                    db.close();
-                    if (missingStores.length > 0) {
-                        console.warn(`⚠️ [PROXY] $scramjet database missing stores: ${missingStores.join(', ')}`);
-                        resolve(true);
-                    } else {
-                        console.log(`✅ [PROXY] $scramjet database schema valid`);
-                        resolve(false);
-                    }
-                };
-                checkDB.onupgradeneeded = (event) => {
-                    // If it's being created now, it's missing stores
-                    event.target.result.close();
-                    resolve(true);
-                };
-                checkDB.onerror = () => resolve(true);
-                checkDB.onblocked = () => {
-                    console.warn('⚠️ [PROXY] DB block detected during check');
-                    resolve(true);
-                };
-            } catch (e) { resolve(true); }
-        });
+            const diagResult = await window.WispHealthChecker.diagnose(wispUrl, healthUrl);
+            console.log('📊 [PROXY] Diagnosis:', diagResult.diagnosis);
 
-        if (needsReset) {
-            console.log('🗑️ [PROXY] Performing full database reset...');
-            // Tell SW to un-cache so it doesn't hold DB open
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'invalidate_config' });
+            if (diagResult.recommendations && diagResult.recommendations.length > 0) {
+                console.log('💡 [PROXY] Recommendations:');
+                diagResult.recommendations.forEach(rec => console.log(`   - ${rec}`));
             }
 
-            await new Promise((resolve) => {
-                const deleteReq = indexedDB.deleteDatabase('$scramjet');
-                deleteReq.onsuccess = () => {
-                    console.log('✅ [PROXY] Database deleted successfully');
-                    resolve();
-                };
-                deleteReq.onerror = () => {
-                    console.error('❌ [PROXY] Failed to delete database');
-                    resolve();
-                };
-                deleteReq.onblocked = () => {
-                    console.warn('⚠️ [PROXY] Deletion blocked! Force-closing connections...');
-                    resolve();
-                };
-            });
-            // Brief wait for browser to settle
-            await new Promise(r => setTimeout(r, 200));
+            // If WebSocket is blocked but HTTP works, show user-friendly warning
+            if (!window.WispHealthChecker.isHealthy) {
+                console.warn('⚠️ [PROXY] WebSocket connection may be blocked or restricted');
+                console.warn('⚠️ [PROXY] The proxy will attempt to connect, but may fail on this network');
+
+                // Show warning banner to user
+                setTimeout(() => {
+                    const banner = document.getElementById('network-warning-banner');
+                    const closeBtn = document.getElementById('warning-close-btn');
+
+                    if (banner) {
+                        banner.classList.remove('hidden');
+
+                        // Auto-hide after 10 seconds
+                        const autoHideTimer = setTimeout(() => {
+                            banner.classList.add('hidden');
+                        }, 10000);
+
+                        // Close button handler
+                        if (closeBtn) {
+                            closeBtn.addEventListener('click', () => {
+                                banner.classList.add('hidden');
+                                clearTimeout(autoHideTimer);
+                            }, { once: true });
+                        }
+                    }
+                }, 1000); // Show after a brief delay
+            }
         }
 
-        // Configure Scramjet with iframe-safe settings
+        // 6. Configure Scramjet with iframe-safe settings
         const scramjetConfig = {
             prefix: window.SCRAMJET_PREFIX,
             wisp: wispUrl,
@@ -219,66 +231,37 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // Disable sourcemaps in iframe mode to prevent cross-origin errors
         if (isInIframe) {
-            scramjetConfig.sourcemaps = false; // Correct format: boolean not object
+            scramjetConfig.sourcemaps = false;
             console.log('🖼️ [PROXY] Disabled sourcemaps for iframe compatibility');
         }
 
         window.scramjet = new ScramjetController(scramjetConfig);
 
-        // Initialize Scramjet with retry logic
-        let initAttempts = 0;
-        const maxAttempts = 3;
+        // 7. Initialize Scramjet with improved error handling
+        console.log('🔄 [PROXY] Initializing Scramjet...');
 
-        while (initAttempts < maxAttempts) {
-            try {
-                console.log(`🔄 [PROXY] Scramjet init attempt ${initAttempts + 1}/${maxAttempts}...`);
+        try {
+            await window.scramjet.init();
+            console.log('✅ [PROXY] Scramjet Controller initialized');
+        } catch (initErr) {
+            console.error('❌ [PROXY] Scramjet init failed:', initErr);
+
+            // If init fails, it's likely a fresh DB corruption during init
+            // Try one more time after cleanup
+            console.log('🗑️ [PROXY] Attempting recovery with fresh database...');
+
+            if (window.StorageHealth) {
+                await window.StorageHealth.deleteScramjetDB();
+                await new Promise(r => setTimeout(r, 300));
+
+                // Final attempt
                 await window.scramjet.init();
-
-                // Verify database was created properly
-                await new Promise((resolve, reject) => {
-                    const checkDB = indexedDB.open('$scramjet');
-                    checkDB.onsuccess = (event) => {
-                        const db = event.target.result;
-                        const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
-                        const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
-
-                        if (missingStores.length > 0) {
-                            db.close();
-                            reject(new Error(`Missing object stores: ${missingStores.join(', ')}`));
-                        } else {
-                            console.log(`✅ [PROXY] Verified $scramjet database (${db.objectStoreNames.length} stores)`);
-                            db.close();
-                            resolve();
-                        }
-                    };
-                    checkDB.onerror = () => reject(new Error('Could not verify $scramjet database'));
-                });
-
-                console.log('✅ [PROXY] Scramjet Controller initialized and verified');
-                break; // Success, exit retry loop
-
-            } catch (initErr) {
-                initAttempts++;
-                console.warn(`⚠️ [PROXY] Scramjet init attempt ${initAttempts} failed:`, initErr);
-
-                if (initAttempts >= maxAttempts) {
-                    // Last resort: delete corrupted database and retry once more
-                    console.log('🗑️ [PROXY] Deleting corrupted $scramjet database...');
-                    await new Promise(resolve => {
-                        const delReq = indexedDB.deleteDatabase('$scramjet');
-                        delReq.onsuccess = delReq.onerror = () => resolve();
-                    });
-
-                    // Final attempt after delete
-                    console.log('🔄 [PROXY] Final init attempt after cleanup...');
-                    await window.scramjet.init();
-                    break;
-                }
-
-                // Wait before retry
-                await new Promise(r => setTimeout(r, 500));
+                console.log('✅ [PROXY] Scramjet initialized after recovery');
+            } else {
+                throw initErr; // No recovery mechanism available
             }
         }
+
 
         // CRITICAL: Signal to Service Worker that database is ready
         if (navigator.serviceWorker.controller) {

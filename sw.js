@@ -14,7 +14,7 @@ try {
 
 // Ensure immediate control
 self.addEventListener('install', (event) => {
-    console.log('SW: 📥 Installing version 6...');
+    console.log('SW: 📥 Installing version 7 (improved initialization)...');
     self.skipWaiting();
 });
 
@@ -23,11 +23,16 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         Promise.all([
             self.clients.claim(),
-            // Clear old caches specifically
+            // Clear old caches to prevent stale content issues
             caches.keys().then(names => {
-                for (let name of names) {
-                    if (name !== CACHE_NAME) caches.delete(name);
-                }
+                return Promise.all(
+                    names.map(name => {
+                        if (name !== CACHE_NAME) {
+                            console.log(`SW: 🗑️ Deleting old cache: ${name}`);
+                            return caches.delete(name);
+                        }
+                    })
+                );
             })
         ])
     );
@@ -49,8 +54,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-// Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v6'; // Bumped for Domain migration fix
+const CACHE_NAME = 'scramjet-proxy-cache-v7'; // Bumped for initialization improvements
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -105,7 +109,22 @@ async function handleRequest(event) {
     const url = event.request.url;
     const isNavigationRequest = event.request.mode === 'navigate' || event.request.destination === 'document';
 
-    // Failsafe: if scramjet failed to initialize, fall back to network immediately
+    // Always allow requests for the app itself and core resources to pass through immediately
+    // This prevents SW from interfering with page load and storage initialization
+    const isAppResource = url.includes(self.location.origin) && (
+        url.endsWith('.html') ||
+        url.endsWith('.js') ||
+        url.endsWith('.css') ||
+        url.includes('/js/') ||
+        url.includes('/css/') ||
+        url.includes('/lib/')
+    );
+
+    if (isAppResource) {
+        return fetch(event.request);
+    }
+
+    // If scramjet hasn't been initialized yet, pass through all requests
     if (!scramjet) {
         console.warn(`SW: ⚠️ Scramjet not ready. Passing through: ${url}`);
         return fetch(event.request);
