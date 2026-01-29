@@ -268,16 +268,25 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             // Fetch and cache the WASM file immediately
             const wasmUrl = new URL("./lib/scramjet/scramjet.wasm.wasm", window.APP_BASE_URL).href;
             const wasmResponse = await fetch(wasmUrl);
-            if (!wasmResponse.ok) {
-                throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
-            }
+            if (!wasmResponse.ok) throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
             const wasmBuffer = await wasmResponse.arrayBuffer();
-            console.log(`✅ [PROXY] WASM loaded (${(wasmBuffer.byteLength / 1024).toFixed(1)} KB)`);
 
-            // Store in global for Scramjet to use
+            // Helper to safely convert buffer to base64 without stack overflow
+            const bufferToBase64 = (buf) => {
+                let binary = '';
+                const bytes = new Uint8Array(buf);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i += 8192) {
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+                }
+                return btoa(binary);
+            };
+
+            // Store in global for Scramjet to use (SAFE METHOD)
             if (typeof self !== 'undefined') {
-                self.WASM = btoa(String.fromCharCode(...new Uint8Array(wasmBuffer)));
+                self.WASM = bufferToBase64(wasmBuffer);
             }
+            console.log(`✅ [PROXY] WASM loaded safely (${(wasmBuffer.byteLength / 1024).toFixed(1)} KB)`);
         } catch (wasmErr) {
             console.warn('⚠️ [PROXY] WASM pre-load failed (will lazy-load):', wasmErr);
             // Non-fatal - Scramjet will try to load it when needed

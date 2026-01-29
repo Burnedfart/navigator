@@ -14,7 +14,7 @@ try {
 
 // Ensure immediate control
 self.addEventListener('install', (event) => {
-    console.log('SW: 📥 Installing version 11 (WASM pre-load fix)...');
+    console.log('SW: 📥 Installing version 12 (Stack overflow fix)...');
     self.skipWaiting();
 });
 
@@ -54,7 +54,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v11'; // WASM pre-load fix
+const CACHE_NAME = 'scramjet-proxy-cache-v12'; // Stack overflow fix
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -110,19 +110,26 @@ async function handleRequest(event) {
     const isNavigationRequest = event.request.mode === 'navigate' || event.request.destination === 'document';
 
     // If scramjet hasn't been initialized yet, pass through all requests
-    if (!scramjet) {
-        console.warn(`SW: ⚠️ Scramjet not ready. Passing through: ${url}`);
+    if (!scramjet || !scramjetConfigLoaded) {
+        // CRITICAL: Check if this is an external URL that SHOULD be proxied.
+        // If it is, and we're not ready, we CANNOT fetch it directly (CORS).
+        const isExternal = url.startsWith('http') && !url.startsWith(self.location.origin);
+        if (isExternal) {
+            console.warn(`SW: ⏳ Proxy not ready for external URL: ${url}. Queueing...`);
+            return new Response(`
+                <html><body style="font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#111;color:#eee;text-align:center;">
+                    <h2>Initializing Proxy...</h2>
+                    <p>Please wait while we establish a secure connection.</p>
+                    <script>setTimeout(() => location.reload(), 1500);</script>
+                </body></html>
+            `, { status: 503, headers: { 'Content-Type': 'text/html' } });
+        }
+
+        console.log(`SW: ⏩ Passing through app resource: ${url}`);
         return fetch(event.request);
     }
 
     try {
-        // CRITICAL: If the main page hasn't finished its setup, DO NOT touch the DB.
-        // This prevents deadlocks during DB deletion/rebuilds.
-        if (!scramjetConfigLoaded) {
-            console.log(`SW: ⏳ Waiting for init_complete signal. Passing through: ${url}`);
-            return fetch(event.request);
-        }
-
         // Check if this request should be proxied
         if (scramjet.route(event)) {
             // console.log(`SW: 🚀 PROXY for ${url}`);
@@ -131,19 +138,7 @@ async function handleRequest(event) {
             if (isStaticResource(url)) {
                 const cache = await caches.open(CACHE_NAME);
                 const cachedResponse = await cache.match(event.request);
-
-                if (cachedResponse) {
-                    // console.log(`SW: 💾 Cache HIT for ${url}`);
-                    // Return cached, but update cache in background
-                    event.waitUntil(
-                        scramjet.fetch(event).then(response => {
-                            if (response.ok) {
-                                cache.put(event.request, response.clone());
-                            }
-                        }).catch(() => { })
-                    );
-                    return cachedResponse;
-                }
+                if (cachedResponse) return cachedResponse;
             }
 
             const response = await scramjet.fetch(event);
@@ -153,23 +148,16 @@ async function handleRequest(event) {
             const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
 
             // Strip restrictive headers from proxied content
-            // This is ESSENTIAL for sites like Coolmathgames to work in iframe mode
             let newHeaders = stripRestrictiveHeaders(response.headers);
 
             // PERFORMANCE: Only inject COOP/COEP on navigation requests
-            // BUT: CRITICAL: Scramjet WASM needs COEP to load in workers
             if (isNavigationRequest) {
                 if (isIframe) {
-                    // IFRAME MODE: Remove COEP/COOP (can't achieve isolation in embeds)
                     newHeaders.delete("Cross-Origin-Embedder-Policy");
                     newHeaders.delete("Cross-Origin-Opener-Policy");
-                    console.log('SW: 🖼️ Iframe - Removed COEP/COOP');
                 } else {
-                    // STANDALONE: credentialless = WASM works + resources load
-                    // This allows Scramjet's WASM rewriter to load in workers
                     newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
                     newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-                    console.log('SW: 🔒 Standalone - COEP: credentialless');
                 }
             }
 
@@ -189,17 +177,10 @@ async function handleRequest(event) {
         }
 
         // Standard network request for app files
-        // console.log(`SW: 🌐 NETWORK for ${url}`);
-
-        // PERFORMANCE: Cache app's own static files
         if (isStaticResource(url)) {
             const cache = await caches.open(CACHE_NAME);
             const cachedResponse = await cache.match(event.request);
-
-            if (cachedResponse) {
-                // console.log(`SW: 💾 Cache HIT for ${url}`);
-                return cachedResponse;
-            }
+            if (cachedResponse) return cachedResponse;
 
             const response = await fetch(event.request);
             if (response.ok) {
@@ -208,37 +189,26 @@ async function handleRequest(event) {
             return response;
         }
 
-        // PERFORMANCE: Only inject isolation headers on navigation requests for app
         const response = await fetch(event.request);
 
         if (isNavigationRequest) {
             const newHeaders = new Headers(response.headers);
-
-            // Detect iframe context
             const fetchDest = event.request.headers.get('Sec-Fetch-Dest');
             const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
 
             if (isIframe) {
-                // IFRAME MODE: Relax ALL isolation headers for the main app too
                 newHeaders.delete("Cross-Origin-Embedder-Policy");
                 newHeaders.delete("Cross-Origin-Opener-Policy");
-                console.log('SW: 🖼️ Iframe detected (App) - Removed COEP/COOP');
             } else {
-                // STANDALONE MODE: Enforce isolation
                 newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
                 newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
             }
 
-            try {
-                return new Response(response.body, {
-                    status: response.status === 0 ? 200 : response.status,
-                    statusText: response.statusText,
-                    headers: newHeaders,
-                });
-            } catch (wrapErr) {
-                // Opaque responses cannot be wrapped
-                return response;
-            }
+            return new Response(response.body, {
+                status: response.status === 0 ? 200 : response.status,
+                statusText: response.statusText,
+                headers: newHeaders,
+            });
         }
 
         return response;
@@ -254,6 +224,17 @@ async function handleRequest(event) {
 self.addEventListener("fetch", (event) => {
     event.respondWith(handleRequest(event));
 });
+
+// Helper to safely convert buffer to base64 without stack overflow
+function bufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i += 8192) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+    }
+    return btoa(binary);
+}
 
 // Listen for messages from main page
 self.addEventListener('message', async (event) => {
@@ -274,14 +255,12 @@ self.addEventListener('message', async (event) => {
         try {
             const wasmUrl = new URL("./lib/scramjet/scramjet.wasm.wasm", self.location.origin).href;
             const wasmResponse = await fetch(wasmUrl);
-            if (!wasmResponse.ok) {
-                throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
-            }
+            if (!wasmResponse.ok) throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
             const wasmBuffer = await wasmResponse.arrayBuffer();
-            console.log(`SW: ✅ WASM loaded (${(wasmBuffer.byteLength / 1024).toFixed(1)} KB)`);
 
-            // Store in global for Scramjet to use
-            self.WASM = btoa(String.fromCharCode(...new Uint8Array(wasmBuffer)));
+            // Store in global for Scramjet to use (SAFE METHOD)
+            self.WASM = bufferToBase64(wasmBuffer);
+            console.log(`SW: ✅ WASM loaded safely (${(wasmBuffer.byteLength / 1024).toFixed(1)} KB)`);
         } catch (wasmErr) {
             console.warn('SW: ⚠️ WASM pre-load failed (will lazy-load):', wasmErr);
         }
