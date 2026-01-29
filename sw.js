@@ -13,14 +13,24 @@ try {
 }
 
 // Ensure immediate control
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
+    console.log('SW: 📥 Installing version 6...');
     self.skipWaiting();
-    console.log('SW: ⏩ Skipped waiting');
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
-    console.log('SW: ⚡ Clients claimed');
+    console.log('SW: ⚡ Activating and claiming clients...');
+    event.waitUntil(
+        Promise.all([
+            self.clients.claim(),
+            // Clear old caches specifically
+            caches.keys().then(names => {
+                for (let name of names) {
+                    if (name !== CACHE_NAME) caches.delete(name);
+                }
+            })
+        ])
+    );
 });
 
 // Scramjet 2.0.0-alpha defines $scramjetLoadWorker on globalThis
