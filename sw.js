@@ -14,7 +14,7 @@ try {
 
 // Ensure immediate control
 self.addEventListener('install', (event) => {
-    console.log('SW: 📥 Installing version 10 (WASM rewriter fix)...');
+    console.log('SW: 📥 Installing version 11 (WASM pre-load fix)...');
     self.skipWaiting();
 });
 
@@ -54,7 +54,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v10'; // WASM rewriter fix
+const CACHE_NAME = 'scramjet-proxy-cache-v11'; // WASM pre-load fix
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -268,6 +268,23 @@ self.addEventListener('message', async (event) => {
         }
 
         await ensureConfigLoaded();
+
+        // Pre-load WASM rewriter in Service Worker context
+        console.log('SW: 📦 Pre-loading WASM rewriter...');
+        try {
+            const wasmUrl = new URL("./lib/scramjet/scramjet.wasm.wasm", self.location.origin).href;
+            const wasmResponse = await fetch(wasmUrl);
+            if (!wasmResponse.ok) {
+                throw new Error(`WASM fetch failed: ${wasmResponse.status}`);
+            }
+            const wasmBuffer = await wasmResponse.arrayBuffer();
+            console.log(`SW: ✅ WASM loaded (${(wasmBuffer.byteLength / 1024).toFixed(1)} KB)`);
+
+            // Store in global for Scramjet to use
+            self.WASM = btoa(String.fromCharCode(...new Uint8Array(wasmBuffer)));
+        } catch (wasmErr) {
+            console.warn('SW: ⚠️ WASM pre-load failed (will lazy-load):', wasmErr);
+        }
     } else if (event.data?.type === 'invalidate_config') {
         scramjetConfigLoaded = false;
         // Force close database handle to allow deletion
