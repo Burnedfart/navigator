@@ -151,41 +151,59 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // Check if database exists and has correct schema
         const needsReset = await new Promise((resolve) => {
-            const checkDB = indexedDB.open('$scramjet');
-            checkDB.onsuccess = (event) => {
-                const db = event.target.result;
-                const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
-                const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
+            try {
+                const checkDB = indexedDB.open('$scramjet');
+                checkDB.onsuccess = (event) => {
+                    const db = event.target.result;
+                    const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
+                    const missingStores = requiredStores.filter(store => !db.objectStoreNames.contains(store));
 
-                // CRITICAL: Close DB immediately to allow deletion if needed
-                db.close();
-
-                if (missingStores.length > 0) {
-                    console.log(`⚠️ [PROXY] $scramjet database missing stores: ${missingStores.join(', ')}`);
-                    // Wait a tick to ensure DB is fully closed
-                    setTimeout(() => resolve(true), 50);
-                } else {
-                    console.log(`✅ [PROXY] $scramjet database schema valid (${db.objectStoreNames.length} stores)`);
-                    resolve(false);
-                }
-            };
-            checkDB.onerror = () => resolve(true); // Database doesn't exist, needs creation
+                    db.close();
+                    if (missingStores.length > 0) {
+                        console.warn(`⚠️ [PROXY] $scramjet database missing stores: ${missingStores.join(', ')}`);
+                        resolve(true);
+                    } else {
+                        console.log(`✅ [PROXY] $scramjet database schema valid`);
+                        resolve(false);
+                    }
+                };
+                checkDB.onupgradeneeded = (event) => {
+                    // If it's being created now, it's missing stores
+                    event.target.result.close();
+                    resolve(true);
+                };
+                checkDB.onerror = () => resolve(true);
+                checkDB.onblocked = () => {
+                    console.warn('⚠️ [PROXY] DB block detected during check');
+                    resolve(true);
+                };
+            } catch (e) { resolve(true); }
         });
 
-        // Only delete if schema is corrupt
         if (needsReset) {
-            console.log('🗑️ [PROXY] Deleting corrupted $scramjet database...');
+            console.log('🗑️ [PROXY] Performing full database reset...');
+            // Tell SW to un-cache so it doesn't hold DB open
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'invalidate_config' });
+            }
+
             await new Promise((resolve) => {
                 const deleteReq = indexedDB.deleteDatabase('$scramjet');
                 deleteReq.onsuccess = () => {
-                    console.log('✅ [PROXY] Database deleted, will recreate');
+                    console.log('✅ [PROXY] Database deleted successfully');
                     resolve();
                 };
-                deleteReq.onerror = deleteReq.onblocked = () => {
-                    console.log('⚠️ [PROXY] Could not delete database, continuing anyway');
+                deleteReq.onerror = () => {
+                    console.error('❌ [PROXY] Failed to delete database');
+                    resolve();
+                };
+                deleteReq.onblocked = () => {
+                    console.warn('⚠️ [PROXY] Deletion blocked! Force-closing connections...');
                     resolve();
                 };
             });
+            // Brief wait for browser to settle
+            await new Promise(r => setTimeout(r, 200));
         }
 
         // Configure Scramjet with iframe-safe settings

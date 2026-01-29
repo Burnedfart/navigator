@@ -54,7 +54,7 @@ if (scramjetBundle) {
 
 // Cache name for static resources
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v5'; // Bumped for App COEP fix
+const CACHE_NAME = 'scramjet-proxy-cache-v6'; // Bumped for Domain migration fix
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -116,9 +116,11 @@ async function handleRequest(event) {
     }
 
     try {
-        // PERFORMANCE: Only ensure config on first request, not every request
+        // CRITICAL: If the main page hasn't finished its setup, DO NOT touch the DB.
+        // This prevents deadlocks during DB deletion/rebuilds.
         if (!scramjetConfigLoaded) {
-            await ensureConfigLoaded();
+            console.log(`SW: ⏳ Waiting for init_complete signal. Passing through: ${url}`);
+            return fetch(event.request);
         }
 
         // Check if this request should be proxied
@@ -256,11 +258,14 @@ self.addEventListener("fetch", (event) => {
 // Listen for messages from main page
 self.addEventListener('message', async (event) => {
     if (event.data?.type === 'init_complete') {
-        // Main page has initialized Scramjet database, now safe to load config
-        console.log('SW: 📨 Received init_complete signal from main page');
+        console.log('SW: 📨 Received init_complete signal');
         await ensureConfigLoaded();
     } else if (event.data?.type === 'invalidate_config') {
         scramjetConfigLoaded = false;
-        console.log('SW: 🔄 Config invalidated, will reload on next request');
+        // NEW: Force close database handle to allow deletion
+        if (scramjet && scramjet.db) {
+            try { scramjet.db.close(); } catch (e) { }
+        }
+        console.log('SW: 🔄 Config invalidated and DB handle closed');
     }
 });
