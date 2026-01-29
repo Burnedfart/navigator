@@ -14,7 +14,7 @@ try {
 
 // Ensure immediate control
 self.addEventListener('install', (event) => {
-    console.log('SW: 📥 Installing version 7 (improved initialization)...');
+    console.log('SW: 📥 Installing version 8 (fixed DOM rendering bug)...');
     self.skipWaiting();
 });
 
@@ -54,7 +54,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v7'; // Bumped for initialization improvements
+const CACHE_NAME = 'scramjet-proxy-cache-v8'; // Fixed DOM rendering bug
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
@@ -108,21 +108,6 @@ async function ensureConfigLoaded() {
 async function handleRequest(event) {
     const url = event.request.url;
     const isNavigationRequest = event.request.mode === 'navigate' || event.request.destination === 'document';
-
-    // Always allow requests for the app itself and core resources to pass through immediately
-    // This prevents SW from interfering with page load and storage initialization
-    const isAppResource = url.includes(self.location.origin) && (
-        url.endsWith('.html') ||
-        url.endsWith('.js') ||
-        url.endsWith('.css') ||
-        url.includes('/js/') ||
-        url.includes('/css/') ||
-        url.includes('/lib/')
-    );
-
-    if (isAppResource) {
-        return fetch(event.request);
-    }
 
     // If scramjet hasn't been initialized yet, pass through all requests
     if (!scramjet) {
