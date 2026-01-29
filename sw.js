@@ -125,7 +125,7 @@ async function handleRequest(event) {
 
         // Check if this request should be proxied
         if (scramjet.route(event)) {
-            console.log(`SW: 🚀 PROXY for ${url}`);
+            // console.log(`SW: 🚀 PROXY for ${url}`);
 
             // PERFORMANCE: Use cache-first strategy for static resources
             if (isStaticResource(url)) {
@@ -133,7 +133,7 @@ async function handleRequest(event) {
                 const cachedResponse = await cache.match(event.request);
 
                 if (cachedResponse) {
-                    console.log(`SW: 💾 Cache HIT for ${url}`);
+                    // console.log(`SW: 💾 Cache HIT for ${url}`);
                     // Return cached, but update cache in background
                     event.waitUntil(
                         scramjet.fetch(event).then(response => {
@@ -186,7 +186,7 @@ async function handleRequest(event) {
         }
 
         // Standard network request for app files
-        console.log(`SW: 🌐 NETWORK for ${url}`);
+        // console.log(`SW: 🌐 NETWORK for ${url}`);
 
         // PERFORMANCE: Cache app's own static files
         if (isStaticResource(url)) {
@@ -194,7 +194,7 @@ async function handleRequest(event) {
             const cachedResponse = await cache.match(event.request);
 
             if (cachedResponse) {
-                console.log(`SW: 💾 Cache HIT for ${url}`);
+                // console.log(`SW: 💾 Cache HIT for ${url}`);
                 return cachedResponse;
             }
 
