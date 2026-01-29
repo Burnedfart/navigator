@@ -13,7 +13,7 @@ try {
 }
 
 // Ensure immediate control
-const VERSION = 'v15'; // Redirect fix
+const VERSION = 'v16'; // Referrer-based redirect fix
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -129,27 +129,33 @@ async function handleRequest(event) {
             // console.log(`SW: 🚀 PROXY for ${url}`);
 
             // Catch top-level navigations (native tabs) and redirect to our Shell
-            // We ignore iframes and our own UI (index.html) to prevent infinite loops
-            if (isNavigationRequest && fetchDest === 'document' && !isIframe) {
+            // IMPORTANT: We MUST avoid redirecting if the request is coming from our own shell (index.html)
+            // or if it's explicitly marked as an iframe/embed.
+            const isTopLevel = isNavigationRequest && fetchDest === 'document';
+            const isFromShell = event.request.referrer && event.request.referrer.includes('index.html');
+
+            if (isTopLevel && !isFromShell && !isIframe) {
                 console.log(`SW: 🔄 Top-level proxy navigation detected: ${url}`);
 
                 let targetUrl = url;
                 try {
-                    // Try to extract original URL for a cleaner link (Scramjet 2.x)
-                    // URL format: [origin]/service/[codec]/[encoded_url]
                     const prefix = scramjet.config.prefix;
-                    if (url.includes(prefix)) {
-                        const pathAfterPrefix = url.split(prefix)[1] || '';
-                        // Skip codec folder
+                    const pathAfterPrefix = url.split(prefix)[1] || '';
+
+                    if (pathAfterPrefix.startsWith('http')) {
+                        // Plain URL format: /service/https://...
+                        targetUrl = decodeURIComponent(pathAfterPrefix);
+                    } else {
+                        // Encoded URL format: /service/xor/[encoded]
                         const parts = pathAfterPrefix.split('/');
-                        if (parts.length > 1) {
-                            const encodedPart = parts.slice(1).join('/');
-                            if (self.__scramjet$codecs && self.__scramjet$codecs.xor) {
+                        const encodedPart = parts.length > 1 ? parts.slice(1).join('/') : parts[0];
+                        if (encodedPart && self.__scramjet$codecs && self.__scramjet$codecs.xor) {
+                            try {
                                 targetUrl = self.__scramjet$codecs.xor.decode(encodedPart);
-                            }
+                            } catch (e) { /* fallback to path */ }
                         }
                     }
-                } catch (e) { /* fallback to original proxied url */ }
+                } catch (e) { /* ignore extraction errors */ }
 
                 const shellUrl = new URL('./index.html', self.location.href);
                 shellUrl.searchParams.set('url', targetUrl);
