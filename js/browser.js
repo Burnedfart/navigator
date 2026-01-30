@@ -55,14 +55,7 @@ class Browser {
         // INCEPTION GUARD: Never load the browser UI inside an iframe
         if (window.self !== window.top) {
             console.warn('[BROWSER] Inception detected (running in iframe). Aborting UI initialization.');
-            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:sans-serif;">Redirecting to content...</div>';
-
-            // If there's a URL in the query, try to redirect the iframe to it directly
-            const params = new URLSearchParams(window.location.search);
-            const urlToOpen = params.get('url');
-            if (urlToOpen) {
-                window.location.href = decodeURIComponent(urlToOpen);
-            }
+            // proxy-init.js already aborted initialization, just return silently
             return;
         }
 

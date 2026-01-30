@@ -10,15 +10,19 @@ window.ProxyService = {
 
 window.ProxyService.ready = new Promise(async (resolve, reject) => {
     try {
+        // INCEPTION GUARD: Don't initialize proxy in Scramjet-created iframes
+        const isInIframe = window.self !== window.top;
+        if (isInIframe) {
+            console.log('🖼️ [PROXY] Inception detected - running in iframe. Skipping initialization.');
+            // Mark as "initialized" to prevent errors in browser.js
+            window.ProxyService.initialized = true;
+            resolve(true);
+            return; // CRITICAL: Stop all initialization
+        }
+
         // Signal to error handler that initialization has started
         if (window.ErrorHandler) {
             window.ErrorHandler.startTimeout();
-        }
-
-        // Detect iframe embedding
-        const isInIframe = window.self !== window.top;
-        if (isInIframe) {
-            console.log('🖼️ [PROXY] Running in iframe mode');
         }
 
         console.log('🔧 [PROXY] Starting initialization...');
@@ -106,8 +110,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         console.log('✅ [SW] Ready and Active');
 
         // 3. Handle Cross-Origin Isolation
-        // Skip reload in iframe - isolation impossible with COOP: unsafe-none
-        if (!window.crossOriginIsolated && window.isSecureContext && !isInIframe) {
+        if (!window.crossOriginIsolated && window.isSecureContext) {
             if (!sessionStorage.getItem('coi_reloaded')) {
                 sessionStorage.setItem('coi_reloaded', 'true');
                 console.log('🔄 [PROXY] Reloading NOW for Isolation headers...');
@@ -227,11 +230,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             },
         };
 
-        // Disable sourcemaps in iframe mode to prevent cross-origin errors
-        if (isInIframe) {
-            scramjetConfig.sourcemaps = false;
-            console.log('🖼️ [PROXY] Disabled sourcemaps for iframe compatibility');
-        }
+        // Note: We never run in iframe mode (inception guard aborts early)
 
         window.scramjet = new ScramjetController(scramjetConfig);
 
