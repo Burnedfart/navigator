@@ -1046,22 +1046,42 @@ class Browser {
 
     async fetchFavicon(tab, url) {
         try {
+            // [SECURITY] Validate the page URL protocol first
+            const pageUrl = new URL(url);
+            if (!['http:', 'https:'].includes(pageUrl.protocol)) {
+                console.warn('[SECURITY] Invalid page protocol for favicon fetch:', pageUrl.protocol);
+                this.updateFavicon(tab, '');
+                return;
+            }
+
             const response = await fetch(url);
             const text = await response.text();
 
-            // Simple regex to find <link rel="icon" href="...">
-            const linkRegex = /<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["'][^>]*>/i;
-            const match = text.match(linkRegex);
+            // [SECURITY] Use DOMParser instead of regex to prevent XSS
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
 
-            if (match && match[1]) {
-                let faviconUrl = match[1];
-                faviconUrl = new URL(faviconUrl, url).href;
-                this.updateFavicon(tab, faviconUrl);
+            // Look for favicon link elements
+            const iconLink = doc.querySelector('link[rel~="icon"]') ||
+                doc.querySelector('link[rel~="shortcut icon"]');
+
+            if (iconLink && iconLink.href) {
+                // Resolve relative URLs
+                let faviconUrl = new URL(iconLink.href, url).href;
+
+                // [SECURITY] Validate favicon URL protocol
+                const faviconUrlObj = new URL(faviconUrl);
+                if (['http:', 'https:', 'data:'].includes(faviconUrlObj.protocol)) {
+                    this.updateFavicon(tab, faviconUrl);
+                } else {
+                    console.warn('[SECURITY] Blocked non-HTTP favicon protocol:', faviconUrlObj.protocol);
+                    this.updateFavicon(tab, '');
+                }
             } else {
                 this.updateFavicon(tab, '');
             }
         } catch (e) {
-            console.warn('Favicon fetch failed', e);
+            console.warn('[FAVICON] Fetch failed:', e);
             this.updateFavicon(tab, '');
         }
     }
