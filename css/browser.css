@@ -204,6 +204,56 @@ html[data-theme="nebula"] {
     accent-color: var(--accent-color);
 }
 
+/* Disguise Settings */
+.disguise-settings {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.disguise-settings label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.disguise-dropdown {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--omnibox-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.disguise-dropdown:focus {
+    border-color: var(--accent-color);
+}
+
+.disguise-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.disguise-actions button {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
 
 body {
     margin: 0;

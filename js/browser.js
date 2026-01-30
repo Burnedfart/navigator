@@ -47,6 +47,39 @@ class Browser {
         this.cloakToggle = document.getElementById('cloak-toggle');
         this.btnTriggerCloak = document.getElementById('btn-trigger-cloak');
 
+        // Disguise Elements
+        this.disguiseSelect = document.getElementById('disguise-select');
+        this.btnApplyDisguise = document.getElementById('btn-apply-disguise');
+        this.btnResetDisguise = document.getElementById('btn-reset-disguise');
+
+        // Disguise Presets
+        this.disguises = {
+            'default': {
+                title: 'Navigator',
+                favicon: 'assets/logo.png'
+            },
+            'google-classroom': {
+                title: 'Classes',
+                favicon: 'https://ssl.gstatic.com/classroom/logo_square_48.png'
+            },
+            'google-drive': {
+                title: 'My Drive - Google Drive',
+                favicon: 'https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png'
+            },
+            'wikipedia': {
+                title: 'Wikipedia, the free encyclopedia',
+                favicon: 'https://en.wikipedia.org/static/favicon/wikipedia.ico'
+            },
+            'google-docs': {
+                title: 'Google Docs',
+                favicon: 'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico'
+            },
+            'gmail': {
+                title: 'Gmail',
+                favicon: 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico'
+            }
+        };
+
         this.navBtns = {
             back: document.getElementById('nav-back'),
             forward: document.getElementById('nav-forward'),
@@ -74,6 +107,18 @@ class Browser {
                 this.openCloaked();
             });
         }
+
+        // Disguise Event Bindings
+        if (this.btnApplyDisguise) {
+            this.btnApplyDisguise.addEventListener('click', () => {
+                this.applyDisguise();
+            });
+        }
+        if (this.btnResetDisguise) {
+            this.btnResetDisguise.addEventListener('click', () => {
+                this.resetDisguise();
+            });
+        }
     }
 
     async init() {
@@ -97,6 +142,7 @@ class Browser {
         this.initializePins();
         this.bindEvents();
         this.loadTheme();
+        this.loadDisguise();
         this.updateProxyStatus('loading');
 
         // Check if Auto-Cloak is enabled
@@ -384,6 +430,10 @@ class Browser {
     openSettings() {
         if (this.cloakToggle) {
             this.cloakToggle.checked = localStorage.getItem('ab') === 'true';
+        }
+        if (this.disguiseSelect) {
+            const savedDisguise = localStorage.getItem('tab_disguise') || 'default';
+            this.disguiseSelect.value = savedDisguise;
         }
         this.settingsModal.classList.remove('hidden');
         this.updateThemeActiveState();
@@ -1061,6 +1111,47 @@ class Browser {
         } catch (err) {
             // Usually cross-origin safety errors, can ignore
         }
+    }
+
+    applyDisguise() {
+        const selected = this.disguiseSelect.value;
+        const disguise = this.disguises[selected];
+
+        if (disguise) {
+            document.title = disguise.title;
+            this.updateFaviconLink(disguise.favicon);
+            localStorage.setItem('tab_disguise', selected);
+            console.log('[BROWSER] Applied disguise:', selected);
+        }
+    }
+
+    resetDisguise() {
+        const defaultDisguise = this.disguises['default'];
+        document.title = defaultDisguise.title;
+        this.updateFaviconLink(defaultDisguise.favicon);
+        localStorage.setItem('tab_disguise', 'default');
+        this.disguiseSelect.value = 'default';
+        console.log('[BROWSER] Reset to default disguise');
+    }
+
+    loadDisguise() {
+        const saved = localStorage.getItem('tab_disguise') || 'default';
+        const disguise = this.disguises[saved];
+
+        if (disguise) {
+            document.title = disguise.title;
+            this.updateFaviconLink(disguise.favicon);
+        }
+    }
+
+    updateFaviconLink(href) {
+        let link = document.querySelector("link[rel~='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.href = href;
     }
 
     openCloaked() {
