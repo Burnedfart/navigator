@@ -602,92 +602,74 @@ class Browser {
                                 iframeWindow.__proxyTabsOverridden = true;
                                 console.log('[BROWSER] ✅ window.open override SUCCESS');
 
-                                // HIJACK LOCATION OBJECT - Intercept location.href, location.replace, location.assign
-                                // These are what Bing's header links (Images, Videos, etc.) likely use
+                                // SMART LOCATION HIJACKING
+                                // Only intercept if navigation happens WITHOUT a recent user click
                                 try {
                                     const originalLocation = iframeWindow.location;
-
-                                    // Create descriptor to trap location.href setter
-                                    const locationDescriptor = Object.getOwnPropertyDescriptor(iframeWindow, 'location');
-
-                                    // Store original methods
                                     const originalReplace = originalLocation.replace;
                                     const originalAssign = originalLocation.assign;
 
-                                    // Override location.replace
+                                    // Track if user just clicked something
+                                    let recentUserClick = false;
+                                    let userClickTimeout = null;
+
+                                    iframeWindow.document.addEventListener('mousedown', () => {
+                                        recentUserClick = true;
+                                        clearTimeout(userClickTimeout);
+                                        userClickTimeout = setTimeout(() => {
+                                            recentUserClick = false;
+                                        }, 100); // 100ms window
+                                    }, { capture: true });
+
                                     originalLocation.replace = function (url) {
-                                        console.log('[BROWSER] ✅✅ Intercepted location.replace:', url);
+                                        console.log('[BROWSER] 📍 location.replace called:', url, 'recentClick:', recentUserClick);
 
-                                        // Check if this should open in new tab (full URL navigation)
-                                        try {
-                                            const urlObj = new URL(url, originalLocation.href);
-                                            const currentOrigin = new URL(originalLocation.href).origin;
+                                        // If this is programmatic (no recent click), it might be trying to escape
+                                        if (!recentUserClick) {
+                                            try {
+                                                const urlObj = new URL(url, originalLocation.href);
+                                                const currentOrigin = new URL(originalLocation.href).origin;
 
-                                            // If it's a different origin, open in new tab
-                                            if (urlObj.origin !== currentOrigin) {
-                                                this.createTab(urlObj.href);
-                                                return;
+                                                // Cross-origin programmatic navigation = likely escape attempt
+                                                if (urlObj.origin !== currentOrigin) {
+                                                    console.log('[BROWSER] 🚨 Blocked programmatic cross-origin escape, opening in new tab');
+                                                    this.createTab(urlObj.href);
+                                                    return;
+                                                }
+                                            } catch (e) {
+                                                console.warn('[BROWSER] URL parse error:', e);
                                             }
-                                        } catch (e) {
-                                            console.warn('[BROWSER] URL parse error in replace:', e);
                                         }
 
-                                        // Otherwise, allow normal navigation within iframe
+                                        // Allow normal navigation
                                         return originalReplace.call(originalLocation, url);
                                     }.bind(this);
 
-                                    // Override location.assign
                                     originalLocation.assign = function (url) {
-                                        console.log('[BROWSER] ✅✅ Intercepted location.assign:', url);
+                                        console.log('[BROWSER] 📍 location.assign called:', url, 'recentClick:', recentUserClick);
 
-                                        try {
-                                            const urlObj = new URL(url, originalLocation.href);
-                                            const currentOrigin = new URL(originalLocation.href).origin;
+                                        if (!recentUserClick) {
+                                            try {
+                                                const urlObj = new URL(url, originalLocation.href);
+                                                const currentOrigin = new URL(originalLocation.href).origin;
 
-                                            if (urlObj.origin !== currentOrigin) {
-                                                this.createTab(urlObj.href);
-                                                return;
+                                                if (urlObj.origin !== currentOrigin) {
+                                                    console.log('[BROWSER] 🚨 Blocked programmatic cross-origin escape, opening in new tab');
+                                                    this.createTab(urlObj.href);
+                                                    return;
+                                                }
+                                            } catch (e) {
+                                                console.warn('[BROWSER] URL parse error:', e);
                                             }
-                                        } catch (e) {
-                                            console.warn('[BROWSER] URL parse error in assign:', e);
                                         }
 
                                         return originalAssign.call(originalLocation, url);
                                     }.bind(this);
 
-                                    // Monitor location.href setter (more complex, needs Proxy)
-                                    // We'll use a MutationObserver to detect navigation instead
-                                    const navigationObserver = new MutationObserver(() => {
-                                        // Check if URL changed dramatically (different origin)
-                                        try {
-                                            const currentUrl = iframeWindow.location.href;
-                                            if (tab.lastObservedUrl && tab.lastObservedUrl !== currentUrl) {
-                                                const oldOrigin = new URL(tab.lastObservedUrl).origin;
-                                                const newOrigin = new URL(currentUrl).origin;
-
-                                                if (oldOrigin !== newOrigin) {
-                                                    console.log('[BROWSER] 🔍 MutationObserver detected cross-origin navigation:', currentUrl);
-                                                    // Can't prevent here, but we've already trapped the methods above
-                                                }
-                                            }
-                                            tab.lastObservedUrl = currentUrl;
-                                        } catch (e) {
-                                            // Cross-origin access blocked
-                                        }
-                                    });
-
-                                    if (iframeWindow.document.body) {
-                                        navigationObserver.observe(iframeWindow.document.body, {
-                                            childList: true,
-                                            subtree: true
-                                        });
-                                    }
-
-                                    console.log('[BROWSER] ✅ Location object hijacking SUCCESS');
+                                    console.log('[BROWSER] ✅ Smart location hijacking attached');
                                 } catch (locErr) {
-                                    console.warn('[BROWSER] ⚠️ Could not hijack location object:', locErr.message);
+                                    console.warn('[BROWSER] ⚠️ Could not attach location hijacking:', locErr.message);
                                 }
-
 
                                 // INTERCEPT ALL NAVIGATION ATTEMPTS
                                 try {
@@ -700,10 +682,15 @@ class Browser {
                                             const isCmdOrCtrl = e.ctrlKey || e.metaKey;
 
                                             if (isNewTab || isMiddleClick || isCmdOrCtrl) {
-                                                console.log('[BROWSER] ✅✅ Intercepted Link Interaction (' + e.type + '):', link.href);
+                                                // Extract real URL (Bing stores it in data-url or h attribute)
+                                                let url = link.getAttribute('data-url') ||
+                                                    link.getAttribute('h') ||
+                                                    link.href;
+
+                                                console.log('[BROWSER] ✅✅ Intercepted Link Interaction (' + e.type + '):', url);
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                this.createTab(link.href);
+                                                this.createTab(url);
                                                 return false;
                                             }
                                         }
