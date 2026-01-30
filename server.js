@@ -1,11 +1,12 @@
 import { createServer } from "node:https";
+import { createServer as createHttpServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "url";
 import path from "path";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import express from "express";
 
-const DOMAIN = "navigator.scholarnavigator.workers.dev";
+const DOMAIN = "scholarnavigator.top";
 let httpsOptions;
 try {
     httpsOptions = {
@@ -97,6 +98,22 @@ server.on("request", (req, res) => {
     app(req, res);
 });
 
+// Create HTTP server for Cloudflare Worker (internal only, no SSL)
+const httpServer = createHttpServer();
+httpServer.on("request", (req, res) => {
+    app(req, res);
+});
+
+// Handle WebSocket upgrade for WISP on HTTP server too
+httpServer.on("upgrade", (req, socket, head) => {
+    if (req.url.endsWith("/wisp/")) {
+        console.log("📡 WISP WebSocket connection (HTTP) from:", req.headers.origin);
+        wisp.routeRequest(req, socket, head);
+    } else {
+        socket.end();
+    }
+});
+
 // Handle WebSocket upgrade for WISP
 server.on("upgrade", (req, socket, head) => {
     if (req.url.endsWith("/wisp/")) {
@@ -123,7 +140,7 @@ const PORT = parseInt(process.env.PORT || "3000");
 const HOST = "0.0.0.0";
 
 server.listen(PORT, HOST, () => {
-    console.log("🚀 Scramjet Proxy Server with WISP (HTTPS)");
+    console.log("🚀 Scramjet Proxy Server with WISP (Dual HTTP/HTTPS)");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log(`📡 HTTPS Server: https://${DOMAIN}:${PORT}`);
     console.log(`🔌 WISP Endpoint: wss://${DOMAIN}:${PORT}/wisp/`);
@@ -133,4 +150,12 @@ server.listen(PORT, HOST, () => {
     console.log(`  📂 Root: ${__dirname}`);
     console.log(`  📦 Lib: /lib/ (Static Assets)`);
     console.log("\nPress Ctrl+C to stop");
+});
+
+// Start HTTP server on port 8080 for Cloudflare Worker
+const HTTP_PORT = 8080;
+httpServer.listen(HTTP_PORT, HOST, () => {
+    console.log("\n🌐 HTTP Server (Internal - for Cloudflare Worker only)");
+    console.log(`📡 HTTP Endpoint: http://${DOMAIN}:${HTTP_PORT}`);
+    console.log(`🔌 WISP over WS: ws://${DOMAIN}:${HTTP_PORT}/wisp/`);
 });
