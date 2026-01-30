@@ -43,6 +43,10 @@ class Browser {
         this.customThemeNameInput = document.getElementById('custom-theme-name');
         this.colorInputs = document.querySelectorAll('.color-item input[type="color"]');
 
+        // Cloak Elements
+        this.cloakToggle = document.getElementById('cloak-toggle');
+        this.btnTriggerCloak = document.getElementById('btn-trigger-cloak');
+
         this.navBtns = {
             back: document.getElementById('nav-back'),
             forward: document.getElementById('nav-forward'),
@@ -58,6 +62,18 @@ class Browser {
         this.init().catch(err => {
             console.error('[BROWSER] Fatal initialization error:', err);
         });
+
+        // Cloak Event Bindings
+        if (this.cloakToggle) {
+            this.cloakToggle.addEventListener('change', () => {
+                localStorage.setItem('ab', this.cloakToggle.checked ? 'true' : 'false');
+            });
+        }
+        if (this.btnTriggerCloak) {
+            this.btnTriggerCloak.addEventListener('click', () => {
+                this.openCloaked();
+            });
+        }
     }
 
     async init() {
@@ -82,6 +98,11 @@ class Browser {
         this.bindEvents();
         this.loadTheme();
         this.updateProxyStatus('loading');
+
+        // Check if Auto-Cloak is enabled
+        if (localStorage.getItem('ab') === 'true') {
+            this.openCloaked();
+        }
 
         // Check for URL in query parameters
         const params = new URLSearchParams(window.location.search);
@@ -361,6 +382,9 @@ class Browser {
 
     // Settings & Themes
     openSettings() {
+        if (this.cloakToggle) {
+            this.cloakToggle.checked = localStorage.getItem('ab') === 'true';
+        }
         this.settingsModal.classList.remove('hidden');
         this.updateThemeActiveState();
     }
@@ -1036,6 +1060,55 @@ class Browser {
             }
         } catch (err) {
             // Usually cross-origin safety errors, can ignore
+        }
+    }
+
+    openCloaked() {
+        let inFrame;
+        try {
+            inFrame = window !== top;
+        } catch (e) {
+            inFrame = true;
+        }
+
+        if (!inFrame && !navigator.userAgent.includes("Firefox")) {
+            const popup = window.open("about:blank", "_blank");
+            if (!popup || popup.closed) {
+                alert("Window blocked. Please allow popups for this site.");
+            } else {
+                const doc = popup.document;
+                const iframe = doc.createElement("iframe");
+                const style = iframe.style;
+                const link = doc.createElement("link");
+
+                const name = localStorage.getItem("cloak_name") || "My Drive - Google Drive";
+                const icon = localStorage.getItem("cloak_icon") || "https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png";
+
+                doc.title = name;
+                link.rel = "icon";
+                link.href = icon;
+
+                iframe.src = location.href;
+                style.position = "fixed";
+                style.top = style.bottom = style.left = style.right = "0";
+                style.border = style.outline = "none";
+                style.width = style.height = "100%";
+
+                const pLink = localStorage.getItem("pLink") || "https://google.com";
+                location.replace(pLink);
+
+                const script = doc.createElement("script");
+                script.textContent = `
+                    window.onbeforeunload = function (event) {
+                        const confirmationMessage = 'Leave Site?';
+                        (event || window.event).returnValue = confirmationMessage;
+                        return confirmationMessage;
+                    };
+                `;
+                doc.head.appendChild(link);
+                doc.body.appendChild(iframe);
+                doc.head.appendChild(script);
+            }
         }
     }
 }

@@ -82,9 +82,22 @@
                 </div>
                 <div class="settings-section">
                     <h4>Advanced</h4>
-                    <button id="btn-open-theme-editor" class="btn-secondary full-width-btn">
-                        Create Custom Theme
-                    </button>
+                    <div class="advanced-actions">
+                        <button id="btn-open-theme-editor" class="btn-secondary full-width-btn"
+                            style="margin-bottom: 12px;">
+                            Create Custom Theme
+                        </button>
+
+                        <div class="cloak-settings">
+                            <div class="cloak-toggle-wrapper">
+                                <label class="cloak-label">
+                                    <input type="checkbox" id="cloak-toggle">
+                                    <span class="cloak-text">Auto about:blank Cloak</span>
+                                </label>
+                            </div>
+                            <button id="btn-trigger-cloak" class="btn-secondary">Open Cloaked Now</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
