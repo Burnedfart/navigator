@@ -23,7 +23,9 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 display: none;
                 align-items: center;
                 justify-content: center;
@@ -42,14 +44,16 @@
             }
             
             .error-card {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
+                background: #1a1a1a;
+                border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 20px;
                 padding: 40px;
-                max-width: 500px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 450px;
+                width: 90%;
+                box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
                 text-align: center;
-                animation: slideUp 0.4s ease-out;
+                animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                color: white;
             }
             
             @keyframes slideUp {
@@ -58,40 +62,47 @@
             }
             
             .error-icon {
-                font-size: 64px;
-                margin-bottom: 20px;
-                animation: bounce 1s ease-in-out infinite;
+                margin-bottom: 24px;
+                animation: bounce 2s ease-in-out infinite;
+                display: flex;
+                justify-content: center;
+            }
+
+            .error-icon img {
+                width: 80px;
+                height: 80px;
+                object-fit: contain;
             }
             
             @keyframes bounce {
                 0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-10px); }
+                50% { transform: translateY(-5px); }
             }
             
             .error-title {
-                font-size: 28px;
+                font-size: 24px;
                 font-weight: 700;
-                color: #2d3748;
+                color: #ffffff;
                 margin-bottom: 12px;
             }
             
             .error-message {
-                font-size: 16px;
-                color: #4a5568;
+                font-size: 15px;
+                color: rgba(255, 255, 255, 0.7);
                 margin-bottom: 24px;
                 line-height: 1.6;
             }
             
             .error-details {
-                background: #f7fafc;
-                border-left: 4px solid #fc8181;
+                background: rgba(0, 0, 0, 0.3);
+                border-left: 4px solid #ff3333;
                 padding: 12px;
                 margin: 20px 0;
                 text-align: left;
                 font-size: 13px;
-                color: #718096;
+                color: rgba(255, 255, 255, 0.5);
                 border-radius: 4px;
-                max-height: 150px;
+                max-height: 120px;
                 overflow-y: auto;
             }
             
@@ -99,14 +110,14 @@
                 display: flex;
                 gap: 12px;
                 justify-content: center;
-                flex-wrap: wrap;
+                flex-direction: column;
             }
             
             .error-btn {
                 padding: 14px 28px;
                 border: none;
-                border-radius: 10px;
-                font-size: 15px;
+                border-radius: 12px;
+                font-size: 14px;
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.2s ease;
@@ -114,23 +125,24 @@
             }
             
             .error-btn-primary {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #ff3333 0%, #d10000 100%);
                 color: white;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                box-shadow: 0 4px 15px rgba(255, 51, 51, 0.3);
             }
             
             .error-btn-primary:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+                box-shadow: 0 6px 20px rgba(255, 51, 51, 0.4);
             }
             
             .error-btn-secondary {
-                background: #e2e8f0;
-                color: #2d3748;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: white;
             }
             
             .error-btn-secondary:hover {
-                background: #cbd5e0;
+                background: rgba(255, 255, 255, 0.1);
                 transform: translateY(-1px);
             }
             
@@ -160,7 +172,9 @@
         ui.id = ERROR_UI_ID;
         ui.innerHTML = `
             <div class="error-card">
-                <div class="error-icon">⚠️</div>
+                <div class="error-icon">
+                    <img src="assets/warning.png" alt="Warning">
+                </div>
                 <h1 class="error-title">Application Failed to Load</h1>
                 <p class="error-message" id="error-msg-text">
                     The application is taking too long to initialize. This usually happens due to corrupted storage.
@@ -171,13 +185,10 @@
                 </div>
                 <div class="error-actions">
                     <button class="error-btn error-btn-primary" id="clear-storage-btn">
-                        🗑️ Clear Storage & Reload
+                        Clear Storage
                     </button>
                     <button class="error-btn error-btn-secondary" id="reload-btn">
-                        🔄 Reload Page
-                    </button>
-                    <button class="error-btn error-btn-secondary" id="continue-btn">
-                        ⏩ Continue Anyway
+                        Reload Page
                     </button>
                 </div>
             </div>
@@ -187,7 +198,6 @@
         // Set up button handlers
         document.getElementById('clear-storage-btn').addEventListener('click', clearAllStorage);
         document.getElementById('reload-btn').addEventListener('click', () => window.location.reload());
-        document.getElementById('continue-btn').addEventListener('click', hideEmergencyUI);
     }
 
     // Show emergency UI
