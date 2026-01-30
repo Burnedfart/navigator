@@ -609,9 +609,9 @@ class Browser {
                                 iframeWindow.__proxyTabsOverridden = true;
                                 console.log('[BROWSER] ✅ window.open override SUCCESS');
 
-                                // INTERCEPT LINK CLICKS (to catch target="_blank")
+                                // INTERCEPT ALL NAVIGATION ATTEMPTS
                                 try {
-                                    const clickHandler = (e) => {
+                                    const navHandler = (e) => {
                                         const link = e.target.closest('a');
                                         if (link) {
                                             const target = link.getAttribute('target');
@@ -620,19 +620,22 @@ class Browser {
                                             const isCmdOrCtrl = e.ctrlKey || e.metaKey;
 
                                             if (isNewTab || isMiddleClick || isCmdOrCtrl) {
-                                                console.log('[BROWSER] ✅✅ Intercepted Link Interaction (New Tab):', link.href);
+                                                console.log('[BROWSER] ✅✅ Intercepted Link Interaction (' + e.type + '):', link.href);
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 this.createTab(link.href);
+                                                return false;
                                             }
                                         }
                                     };
 
-                                    iframeWindow.document.addEventListener('click', clickHandler, true);
-                                    iframeWindow.document.addEventListener('auxclick', clickHandler, true);
-                                    console.log('[BROWSER] ✅ Link/AuxClick interception attached');
+                                    // Events to catch. Using true for capture phase to beat the site's own listeners.
+                                    ['click', 'mousedown', 'auxclick'].forEach(evt => {
+                                        iframeWindow.document.addEventListener(evt, navHandler, { capture: true, passive: false });
+                                    });
+                                    console.log('[BROWSER] ✅ Broad navigation interception attached');
                                 } catch (docErr) {
-                                    console.warn('[BROWSER] ⚠️ Could not attach link interception:', docErr.message);
+                                    console.warn('[BROWSER] ⚠️ Could not attach broad link interception:', docErr.message);
                                 }
                             }
                         } catch (e) {
