@@ -176,36 +176,24 @@ class Browser {
             const tab = this.getActiveTab();
             if (!tab || tab.url === 'browser://home') return;
 
-            // 1. Debounce
             if (this.__backProcessing) return;
             this.__backProcessing = true;
             setTimeout(() => this.__backProcessing = false, 300);
 
-            const oldUrl = tab.url;
-            console.log('[NAVIGATOR] 🔙 Back Button Request. Current URL:', oldUrl);
-
             if (tab.iframe && tab.iframe.contentWindow) {
                 try {
-                    console.log('[NAVIGATOR] 🔙 Triggering internal back...');
+                    const hLen = tab.iframe.contentWindow.history.length;
+                    console.log(`[NAVIGATOR] 🔙 Back Request. History Length: ${hLen}, UI URL: ${tab.url}`);
+
                     tab.iframe.contentWindow.history.back();
 
-                    // 2. Forced commit hack (Interstellar style)
-                    setTimeout(() => {
-                        try { if (tab.iframe) tab.iframe.src = tab.iframe.src; } catch (e) { }
-                    }, 50);
-
-                    // 3. Exhaustion & Sync check
+                    // Sync UI after a longer delay to ensure the back navigation has committed
                     setTimeout(() => {
                         this.syncTabWithIframe(tab);
-                        if (tab.url === oldUrl) {
-                            console.log('[NAVIGATOR] 🔙 URL unchanged. Exiting to Home.');
-                            this.navigate('browser://home');
-                        } else {
-                            console.log('[NAVIGATOR] 🔙 Back result:', tab.url);
-                        }
-                    }, 250);
+                        console.log('[NAVIGATOR] 🔙 Background Sync Result:', tab.url);
+                    }, 500);
                 } catch (err) {
-                    console.error('[NAVIGATOR] 🔙 Back error:', err);
+                    console.error('[NAVIGATOR] 🔙 Execution Error:', err);
                     this.navigate('browser://home');
                 }
             } else {
@@ -225,22 +213,14 @@ class Browser {
             this.__forwardProcessing = true;
             setTimeout(() => this.__forwardProcessing = false, 300);
 
-            const oldUrl = tab.url;
-            console.log('[NAVIGATOR] 🔜 Forward Button Request. Current URL:', oldUrl);
-
             if (tab.iframe && tab.iframe.contentWindow) {
                 try {
-                    console.log('[NAVIGATOR] 🔜 Triggering internal forward...');
+                    console.log('[NAVIGATOR] 🔜 Forwarding internal history...');
                     tab.iframe.contentWindow.history.forward();
 
                     setTimeout(() => {
-                        try { if (tab.iframe) tab.iframe.src = tab.iframe.src; } catch (e) { }
-                    }, 50);
-
-                    setTimeout(() => {
                         this.syncTabWithIframe(tab);
-                        console.log('[NAVIGATOR] 🔜 Forward result:', tab.url);
-                    }, 250);
+                    }, 500);
                 } catch (err) {
                     console.error('[NAVIGATOR] 🔜 Forward error:', err);
                 }
