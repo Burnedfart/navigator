@@ -860,6 +860,18 @@ class Browser {
 
         const tab = this.tabs[tabIndex];
 
+        // [PERFORMANCE] Clean up intervals to prevent memory leaks
+        if (tab.__syncInterval) {
+            clearInterval(tab.__syncInterval);
+            tab.__syncInterval = null;
+            console.log('[PERFORMANCE] Cleared sync interval for tab', id);
+        }
+        if (tab.__overrideInterval) {
+            clearInterval(tab.__overrideInterval);
+            tab.__overrideInterval = null;
+            console.log('[PERFORMANCE] Cleared override interval for tab', id);
+        }
+
         // Remove Elements
         tab.element.remove();
         if (tab.iframe) tab.iframe.remove();
@@ -965,7 +977,8 @@ class Browser {
                             // SYNC URL BAR (Periodic poll)
                             if (!tab.__locationPollStarted) {
                                 tab.__locationPollStarted = true;
-                                setInterval(() => this.syncTabWithIframe(tab), 1000);
+                                // [PERFORMANCE] Store interval ID for cleanup
+                                tab.__syncInterval = setInterval(() => this.syncTabWithIframe(tab), 1000);
                             }
 
                             if (!iframeWindow.__proxyTabsOverridden) {
@@ -1030,7 +1043,8 @@ class Browser {
                         if (this.activeTabId === tab.id) this.setLoading(false);
                         attachWindowOpenOverride();
                     });
-                    setInterval(attachWindowOpenOverride, 1000);
+                    // [PERFORMANCE] Store interval ID for cleanup
+                    tab.__overrideInterval = setInterval(attachWindowOpenOverride, 1000);
 
                 } else {
                     console.error('Scramjet unavailable');
@@ -1044,8 +1058,8 @@ class Browser {
             if (tab.scramjetWrapper) {
                 try {
                     await tab.scramjetWrapper.go(url);
-                    // Fetch Favicon separately since we can't easily access iframe DOM
-                    this.fetchFavicon(tab, url);
+                    // [PERFORMANCE] Defer favicon fetch to not block navigation
+                    setTimeout(() => this.fetchFavicon(tab, url), 100);
                 } catch (e) {
                     console.error("Navigation failed", e);
                     this.setLoading(false);
