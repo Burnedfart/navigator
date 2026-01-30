@@ -68,6 +68,15 @@ class Browser {
             return;
         }
 
+        // HISTORY ANCHOR: Prevent accidental exits when clicking back
+        // This ensures that even if history.back() bubbles, it just consumes our dummy state
+        window.history.pushState({ anchor: true }, '');
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.anchor) return;
+            // Re-anchor if we navigated out
+            window.history.pushState({ anchor: true }, '');
+        });
+
         this.initializePins();
         this.bindEvents();
         this.loadTheme();
@@ -161,28 +170,25 @@ class Browser {
         this.navBtns.back.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
 
             const tab = this.getActiveTab();
             if (!tab) return;
-
             if (tab.url === 'browser://home') return;
 
             if (tab.iframe && tab.iframe.contentWindow) {
                 try {
-                    // If we can detect we are at the start of the iframe session, go home
-                    // Note: This is an approximation since history.length doesn't decrease
-                    if (tab.iframe.contentWindow.history.length <= 1) {
-                        this.navigate('browser://home');
-                    } else {
-                        // Use Scramjet's back if possible, else standard history
-                        if (tab.scramjetWrapper && typeof tab.scramjetWrapper.back === 'function') {
-                            tab.scramjetWrapper.back();
-                        } else {
-                            tab.iframe.contentWindow.history.back();
-                        }
-                    }
+                    tab.iframe.contentWindow.history.back();
+                    // Immediate sync and Interstellar src-refresh
+                    setTimeout(() => {
+                        try {
+                            if (tab.iframe && tab.iframe.src) {
+                                tab.iframe.src = tab.iframe.src;
+                                this.syncTabWithIframe(tab);
+                            }
+                        } catch (e) { }
+                    }, 50);
                 } catch (err) {
-                    console.warn('[BROWSER] Back navigation error, falling back to home:', err);
                     this.navigate('browser://home');
                 }
             } else {
@@ -193,14 +199,21 @@ class Browser {
         this.navBtns.forward.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
 
             const tab = this.getActiveTab();
             if (tab && tab.iframe && tab.iframe.contentWindow) {
-                if (tab.scramjetWrapper && typeof tab.scramjetWrapper.forward === 'function') {
-                    tab.scramjetWrapper.forward();
-                } else {
+                try {
                     tab.iframe.contentWindow.history.forward();
-                }
+                    setTimeout(() => {
+                        try {
+                            if (tab.iframe && tab.iframe.src) {
+                                tab.iframe.src = tab.iframe.src;
+                                this.syncTabWithIframe(tab);
+                            }
+                        } catch (e) { }
+                    }, 50);
+                } catch (err) { }
             }
         });
 
@@ -827,32 +840,7 @@ class Browser {
                             // SYNC URL BAR (Periodic poll)
                             if (!tab.__locationPollStarted) {
                                 tab.__locationPollStarted = true;
-                                setInterval(() => {
-                                    try {
-                                        if (this.activeTabId !== tab.id) return;
-                                        if (tab.url === 'browser://home') return;
-
-                                        const rawUrl = iframeWindow.location.href;
-                                        // Scramjet URLs look like domain.com/service/https://target.com
-                                        if (rawUrl.includes('/service/')) {
-                                            const realUrl = decodeURIComponent(rawUrl.split('/service/')[1]);
-                                            if (realUrl && realUrl !== tab.url && !realUrl.endsWith('...')) {
-                                                console.log('[BROWSER] 🔄 Syncing UI to iframe location:', realUrl);
-                                                tab.url = realUrl;
-                                                this.omnibox.value = realUrl;
-
-                                                // Update tab title
-                                                try {
-                                                    const hostname = new URL(realUrl).hostname;
-                                                    tab.title = hostname || 'Browse';
-                                                    tab.element.querySelector('.tab-title').textContent = tab.title;
-                                                } catch (e) { }
-                                            }
-                                        }
-                                    } catch (err) {
-                                        // Usually cross-origin safety errors, can ignore
-                                    }
-                                }, 1000);
+                                setInterval(() => this.syncTabWithIframe(tab), 1000);
                             }
 
                             if (!iframeWindow.__proxyTabsOverridden) {
@@ -976,6 +964,38 @@ class Browser {
         } catch (e) {
             console.warn('Favicon fetch failed', e);
             this.updateFavicon(tab, '');
+        }
+    }
+
+    syncTabWithIframe(tab) {
+        if (!tab || !tab.iframe || !tab.iframe.contentWindow) return;
+        try {
+            if (this.activeTabId !== tab.id) return;
+            if (tab.url === 'browser://home') return;
+
+            const iframeWindow = tab.iframe.contentWindow;
+            const rawUrl = iframeWindow.location.href;
+
+            // Scramjet URLs look like domain.com/service/https://target.com
+            if (rawUrl.includes('/service/')) {
+                const realUrl = decodeURIComponent(rawUrl.split('/service/')[1]);
+                if (realUrl && realUrl !== tab.url && !realUrl.endsWith('...')) {
+                    console.log('[BROWSER] 🔄 Syncing UI to iframe location:', realUrl);
+                    tab.url = realUrl;
+                    this.omnibox.value = realUrl;
+
+                    // Update tab title
+                    try {
+                        const hostname = new URL(realUrl).hostname;
+                        tab.title = hostname || 'Browse';
+                        if (tab.element) {
+                            tab.element.querySelector('.tab-title').textContent = tab.title;
+                        }
+                    } catch (e) { }
+                }
+            }
+        } catch (err) {
+            // Usually cross-origin safety errors, can ignore
         }
     }
 }
