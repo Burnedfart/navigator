@@ -687,11 +687,14 @@ iframe.browser-viewport.active {
 }
 
 .home-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
-    max-width: 800px;
-    padding: 0 24px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    max-width: 1000px;
+    padding: 0 40px;
+    margin: 0 auto;
 }
 
 .grid-item {
@@ -699,9 +702,10 @@ iframe.browser-viewport.active {
     flex-direction: column;
     align-items: center;
     cursor: pointer;
-    padding: 16px;
+    padding: 12px;
+    width: 120px;
     border-radius: var(--radius-md);
-    transition: background 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .grid-item:hover {

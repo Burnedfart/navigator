@@ -348,7 +348,6 @@ class Browser {
 
         // Default Apps
         const apps = [
-            { name: 'Bing', url: 'https://bing.com', icon: 'B' },
             { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
             { name: 'GitHub', url: 'https://github.com', icon: 'GH' }
         ];
