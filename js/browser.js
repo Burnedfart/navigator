@@ -391,14 +391,6 @@ class Browser {
             </div>
         `;
 
-        // Add "Clear Storage" Button (Debug/Recovery)
-        gridHtml += `
-            <div class="grid-item debug-btn" id="clear-storage-trigger-${tab.id}" style="opacity: 0.7;" title="Clear all storage and reload">
-                <div class="item-icon">🗑️</div>
-                <div class="item-title">Clear Storage</div>
-            </div>
-        `;
-
         gridHtml += `</div>`;
         tab.homeElement.innerHTML = gridHtml;
 
@@ -415,19 +407,6 @@ class Browser {
         if (addBtn) {
             addBtn.addEventListener('click', () => {
                 this.openModal();
-            });
-        }
-
-        // Attach Event Listener for Clear Storage
-        const clearBtn = tab.homeElement.querySelector(`#clear-storage-trigger-${tab.id}`);
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                if (window.ErrorHandler) {
-                    const confirmed = confirm('This will clear all storage (IndexedDB, localStorage, caches, etc.) and reload the page. Continue?');
-                    if (confirmed) {
-                        window.ErrorHandler.clearStorage();
-                    }
-                }
             });
         }
     }
