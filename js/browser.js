@@ -222,9 +222,11 @@ class Browser {
                 this.__forwardProcessing = true;
                 setTimeout(() => this.__forwardProcessing = false, 300);
 
-                console.log('[NAVIGATOR] 🔜 Forward from Home - restoring site.');
+                console.log('[NAVIGATOR] 🔜 Forward from Home - restoring site view.');
                 tab.homeElement.classList.add('hidden');
                 tab.iframe.classList.add('active');
+
+                // Immediately update tab.url and omnibox
                 this.syncTabWithIframe(tab);
                 return;
             }
@@ -1007,7 +1009,9 @@ class Browser {
         if (!tab || !tab.iframe || !tab.iframe.contentWindow) return;
         try {
             if (this.activeTabId !== tab.id) return;
-            if (tab.url === 'browser://home') return;
+
+            // If we are on the home page and not currently transitioning out of it, skip sync
+            if (tab.url === 'browser://home' && tab.homeElement && !tab.homeElement.classList.contains('hidden')) return;
 
             const iframeWindow = tab.iframe.contentWindow;
             const rawUrl = iframeWindow.location.href;
