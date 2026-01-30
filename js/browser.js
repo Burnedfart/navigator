@@ -516,15 +516,27 @@ class Browser {
             return;
         }
 
-        let url = input;
-        if (input === 'browser://home') {
-            url = input;
-        } else if (!input.startsWith('http')) {
-            if (input.includes('.') && !input.includes(' ')) {
-                url = 'https://' + input;
+        if (url === 'browser://home') {
+            // Already home
+        } else if (!url.startsWith('http') && !url.includes('://')) {
+            if (url.includes('.') && !url.includes(' ')) {
+                url = 'https://' + url;
             } else {
-                url = 'https://bing.com/search?q=' + encodeURIComponent(input);
+                url = 'https://bing.com/search?q=' + encodeURIComponent(url);
             }
+        }
+
+        // DECODE BING TRACKING (if any)
+        if (url.includes('/ck/a?') || url.includes('&u=')) {
+            try {
+                const u = new URL(url).searchParams.get('u');
+                if (u && u.length > 2) {
+                    const decoded = atob(u.substring(2).replace(/_/g, '/').replace(/-/g, '+'));
+                    if (decoded.includes('http') || decoded.startsWith('/')) {
+                        url = decoded.startsWith('http') ? decoded : 'https://' + decoded;
+                    }
+                }
+            } catch (err) { }
         }
 
         // BLOCKING CHECK
@@ -571,6 +583,36 @@ class Browser {
                         try {
                             const iframeWindow = tab.iframe.contentWindow;
                             if (!iframeWindow) return;
+
+                            // SYNC URL BAR (Periodic poll)
+                            if (!tab.__locationPollStarted) {
+                                tab.__locationPollStarted = true;
+                                setInterval(() => {
+                                    try {
+                                        if (this.activeTabId !== tab.id) return;
+
+                                        const rawUrl = iframeWindow.location.href;
+                                        // Scramjet URLs look like domain.com/service/https://target.com
+                                        if (rawUrl.includes('/service/')) {
+                                            const realUrl = decodeURIComponent(rawUrl.split('/service/')[1]);
+                                            if (realUrl && realUrl !== tab.url && !realUrl.endsWith('...')) {
+                                                console.log('[BROWSER] 🔄 Syncing UI to iframe location:', realUrl);
+                                                tab.url = realUrl;
+                                                this.omnibox.value = realUrl;
+
+                                                // Update tab title
+                                                try {
+                                                    const hostname = new URL(realUrl).hostname;
+                                                    tab.title = hostname || 'Browse';
+                                                    tab.element.querySelector('.tab-title').textContent = tab.title;
+                                                } catch (e) { }
+                                            }
+                                        }
+                                    } catch (err) {
+                                        // Usually cross-origin safety errors, can ignore
+                                    }
+                                }, 1000);
+                            }
 
                             if (!iframeWindow.__proxyTabsOverridden) {
                                 // NAVIGATION INTERCEPTION
