@@ -115,6 +115,16 @@ class Browser {
         }
     }
 
+    /**
+     * [SECURITY] Sanitize user input to prevent XSS attacks
+     * Converts HTML special characters to their text equivalents
+     */
+    sanitizeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     async init() {
         if (window.self !== window.top) {
             let isAboutBlankCloak = false;
@@ -770,21 +780,37 @@ class Browser {
         const name = this.appNameInput.value.trim();
         let url = this.appUrlInput.value.trim();
 
-        if (!name || !url) return;
+        if (!name || !url) {
+            alert('Please enter both a name and URL');
+            return;
+        }
+
+        // [SECURITY] Sanitize the name to prevent XSS
+        const safeName = this.sanitizeHTML(name);
 
         try {
             // Basic URL validation/fix
             if (!url.startsWith('http')) {
                 url = 'https://' + url;
             }
-            new URL(url); // Will throw if invalid
+
+            // [SECURITY] Validate URL is actually valid
+            const urlObj = new URL(url);
+
+            // [SECURITY] Only allow http/https protocols
+            if (!['http:', 'https:'].includes(urlObj.protocol)) {
+                alert('Invalid URL: Only HTTP and HTTPS URLs are allowed');
+                return;
+            }
         } catch (e) {
-            alert('Invalid URL');
+            alert('Invalid URL format. Please enter a valid website address.');
             return;
         }
 
         const customApps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-        customApps.push({ name, url });
+
+        // Store the sanitized name
+        customApps.push({ name: safeName, url });
         localStorage.setItem('custom_apps', JSON.stringify(customApps));
 
         this.closeModal();
