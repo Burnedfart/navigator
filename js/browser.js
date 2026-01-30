@@ -158,36 +158,75 @@ class Browser {
             }
         });
 
-        this.navBtns.back.addEventListener('click', () => {
+        this.navBtns.back.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             const tab = this.getActiveTab();
-            if (tab && tab.iframe && tab.iframe.contentWindow) {
-                tab.iframe.contentWindow.history.back();
+            if (!tab) return;
+
+            if (tab.url === 'browser://home') return;
+
+            if (tab.iframe && tab.iframe.contentWindow) {
+                try {
+                    // If we can detect we are at the start of the iframe session, go home
+                    // Note: This is an approximation since history.length doesn't decrease
+                    if (tab.iframe.contentWindow.history.length <= 1) {
+                        this.navigate('browser://home');
+                    } else {
+                        // Use Scramjet's back if possible, else standard history
+                        if (tab.scramjetWrapper && typeof tab.scramjetWrapper.back === 'function') {
+                            tab.scramjetWrapper.back();
+                        } else {
+                            tab.iframe.contentWindow.history.back();
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[BROWSER] Back navigation error, falling back to home:', err);
+                    this.navigate('browser://home');
+                }
+            } else {
+                this.navigate('browser://home');
             }
         });
 
-        this.navBtns.forward.addEventListener('click', () => {
+        this.navBtns.forward.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             const tab = this.getActiveTab();
             if (tab && tab.iframe && tab.iframe.contentWindow) {
-                tab.iframe.contentWindow.history.forward();
+                if (tab.scramjetWrapper && typeof tab.scramjetWrapper.forward === 'function') {
+                    tab.scramjetWrapper.forward();
+                } else {
+                    tab.iframe.contentWindow.history.forward();
+                }
             }
         });
 
-        this.navBtns.refresh.addEventListener('click', () => {
+        this.navBtns.refresh.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             const tab = this.getActiveTab();
             if (tab) {
                 if (tab.url === 'browser://home') {
-                    this.renderHomePage(tab); // Re-render to show any new custom apps
+                    this.renderHomePage(tab);
                 } else if (tab.iframe) {
                     this.setLoading(true);
-                    tab.iframe.contentWindow.location.reload();
-                    // Determine when stop loading? Difficult with iframe cross-origin.
-                    // We'll set a timeout fallback or rely on onload if possible.
+                    if (tab.scramjetWrapper && typeof tab.scramjetWrapper.reload === 'function') {
+                        tab.scramjetWrapper.reload();
+                    } else {
+                        tab.iframe.contentWindow.location.reload();
+                    }
                     tab.iframe.onload = () => this.setLoading(false);
                 }
             }
         });
 
-        this.navBtns.home.addEventListener('click', () => {
+        this.navBtns.home.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             this.navigate('browser://home');
         });
 
