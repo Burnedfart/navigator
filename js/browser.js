@@ -59,6 +59,7 @@ class Browser {
             return;
         }
 
+        this.initializePins();
         this.bindEvents();
         this.loadTheme();
         this.updateProxyStatus('loading');
@@ -92,6 +93,25 @@ class Browser {
     }
 
 
+
+    initializePins() {
+        if (!localStorage.getItem('pins_initialized')) {
+            const defaultApps = [
+                { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
+                { name: 'GitHub', url: 'https://github.com', icon: 'GH' }
+            ];
+            const existing = JSON.parse(localStorage.getItem('custom_apps') || '[]');
+
+            // Check if user already has these in their custom list to avoid duplicates
+            const filteredDefaults = defaultApps.filter(def =>
+                !existing.some(ext => ext.url === def.url)
+            );
+
+            const combined = [...filteredDefaults, ...existing];
+            localStorage.setItem('custom_apps', JSON.stringify(combined));
+            localStorage.setItem('pins_initialized', 'true');
+        }
+    }
 
     bindEvents() {
         // Intercept new window requests from Scramjet or the Service Worker
@@ -346,15 +366,8 @@ class Browser {
     renderHomePage(tab) {
         if (!tab.homeElement) return;
 
-        // Default Apps
-        const apps = [
-            { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-            { name: 'GitHub', url: 'https://github.com', icon: 'GH' }
-        ];
-
-        // Custom Apps from LocalStorage
-        const customApps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-        const allApps = [...apps, ...customApps];
+        // All pins are now stored in custom_apps to allow total customization
+        const allPins = JSON.parse(localStorage.getItem('custom_apps') || '[]');
 
         let gridHtml = `
         <div class="home-branding">
@@ -364,12 +377,19 @@ class Browser {
         <div class="home-grid">
     `;
 
-        allApps.forEach(app => {
-            // Determine icon display
+        // Render all pins (with Delete Button)
+        allPins.forEach((app, index) => {
             let iconContent = app.icon || app.name.charAt(0).toUpperCase();
-
             gridHtml += `
-                <div class="grid-item" data-url="${app.url}">
+                <div class="grid-item" data-url="${app.url}" data-index="${index}">
+                    <button class="delete-pin" title="Delete Pin">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
                     <div class="item-icon">${iconContent}</div>
                     <div class="item-title">${app.name}</div>
                 </div>
@@ -387,11 +407,24 @@ class Browser {
         gridHtml += `</div>`;
         tab.homeElement.innerHTML = gridHtml;
 
-        // Attach Event Listeners for Grid Items
-        tab.homeElement.querySelectorAll('.grid-item:not(.add-app-btn):not(.debug-btn)').forEach(item => {
-            item.addEventListener('click', () => {
+        // Attach Event Listeners for Navigation
+        tab.homeElement.querySelectorAll('.grid-item:not(.add-app-btn)').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Ignore if clicking the delete button
+                if (e.target.closest('.delete-pin')) return;
+
                 const url = item.getAttribute('data-url');
                 this.navigate(url);
+            });
+        });
+
+        // Attach Event Listeners for Deletion
+        tab.homeElement.querySelectorAll('.delete-pin').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const index = parseInt(btn.closest('.grid-item').getAttribute('data-index'));
+                this.deletePin(index);
             });
         });
 
@@ -402,6 +435,19 @@ class Browser {
                 this.openModal();
             });
         }
+    }
+
+    deletePin(index) {
+        const apps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
+        apps.splice(index, 1);
+        localStorage.setItem('custom_apps', JSON.stringify(apps));
+
+        // Re-render home page for all tabs on home
+        this.tabs.forEach(tab => {
+            if (tab.url === 'browser://home') {
+                this.renderHomePage(tab);
+            }
+        });
     }
 
     openModal() {

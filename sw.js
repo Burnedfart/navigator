@@ -13,7 +13,7 @@ try {
 }
 
 // Ensure immediate control
-const VERSION = 'v23'; // Pinned Apps Centering Update
+const VERSION = 'v25'; // Default Pin Customization Update
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -51,7 +51,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v23'; // UI Centering Refresh
+const CACHE_NAME = 'scramjet-proxy-cache-v25'; // UI Customization Refresh
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,

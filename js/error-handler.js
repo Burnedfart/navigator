@@ -23,9 +23,9 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0, 0, 0, 0.4);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
+                background: rgba(180, 180, 180, 0.4);
+                backdrop-filter: blur(2px);
+                -webkit-backdrop-filter: blur(2px);
                 display: none;
                 align-items: center;
                 justify-content: center;
@@ -44,7 +44,7 @@
             }
             
             .error-card {
-                background: #1a1a1a;
+                background: #6d6d6dff;
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 20px;
                 padding: 40px;
