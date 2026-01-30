@@ -41,7 +41,14 @@ class Browser {
             home: document.getElementById('nav-home'),
         };
 
-        this.init();
+        // Safety: Check if critical elements exist before proceeding
+        if (!this.tabsContainer || !this.viewportsContainer || !this.omnibox || !this.settingsBtn) {
+            console.error('[BROWSER] Critical DOM elements missing. Mismatched cache suspected.');
+        }
+
+        this.init().catch(err => {
+            console.error('[BROWSER] Fatal initialization error:', err);
+        });
     }
 
     async init() {
@@ -178,18 +185,26 @@ class Browser {
         this.appUrlInput.addEventListener('keydown', handleModalEnter);
 
         // Settings Events
-        this.settingsBtn.addEventListener('click', () => this.openSettings());
-        this.settingsCloseBtn.addEventListener('click', () => this.closeSettings());
-        this.settingsModal.addEventListener('click', (e) => {
-            if (e.target === this.settingsModal) this.closeSettings();
-        });
-
-        this.themeBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const theme = btn.getAttribute('data-theme');
-                this.setTheme(theme);
+        if (this.settingsBtn) {
+            this.settingsBtn.addEventListener('click', () => this.openSettings());
+        }
+        if (this.settingsCloseBtn) {
+            this.settingsCloseBtn.addEventListener('click', () => this.closeSettings());
+        }
+        if (this.settingsModal) {
+            this.settingsModal.addEventListener('click', (e) => {
+                if (e.target === this.settingsModal) this.closeSettings();
             });
-        });
+        }
+
+        if (this.themeBtns) {
+            this.themeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.getAttribute('data-theme');
+                    this.setTheme(theme);
+                });
+            });
+        }
 
         // Network Warning Close
         const warningClose = document.getElementById('warning-close-btn');

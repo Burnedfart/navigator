@@ -13,7 +13,7 @@ try {
 }
 
 // Ensure immediate control
-const VERSION = 'v17'; // Header-based loop prevention
+const VERSION = 'v18'; // UI Refinement Update
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -22,8 +22,18 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     console.log('SW: ⚡ Activating and claiming clients...');
-    // Tell the active service worker to take control of the page immediately.
-    event.waitUntil(self.clients.claim());
+    // Clear old caches to force UI updates
+    event.waitUntil(
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
 });
 
 let scramjet = null; // Will be created later
@@ -42,7 +52,7 @@ if (!scramjetBundle) {
 }
 
 // Cache name for static resources
-const CACHE_NAME = 'scramjet-proxy-cache-v14'; // Handshake fix
+const CACHE_NAME = 'scramjet-proxy-cache-v18'; // UI Fix Update
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
