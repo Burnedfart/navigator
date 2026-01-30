@@ -573,42 +573,70 @@ class Browser {
                     tab.iframe.style.position = 'absolute';
                     this.viewportsContainer.appendChild(tab.iframe);
 
-                    // Add load listener to stop spinner
-                    tab.iframe.onload = () => {
-                        if (this.activeTabId === tab.id) {
-                            this.setLoading(false);
-                        }
-
-                        // CRITICAL: Override window.open to intercept new tab/window requests
-                        // This is the key to preventing native tabs from opening
+                    // Helper function to override window.open
+                    const attachWindowOpenOverride = () => {
                         try {
                             const iframeWindow = tab.iframe.contentWindow;
+
+                            // Debug logging
+                            console.log('[BROWSER] Override attempt - has contentWindow:', !!iframeWindow,
+                                'already overridden:', iframeWindow?.__proxyTabsOverridden,
+                                'iframe src:', tab.iframe.src?.substring(0, 100));
+
                             if (iframeWindow && !iframeWindow.__proxyTabsOverridden) {
-                                // Store the original for debugging
+                                console.log('[BROWSER] ⚡ Attaching window.open override...');
+
+                                // Store the original
                                 iframeWindow.__originalOpen = iframeWindow.open;
 
                                 // Override window.open
                                 iframeWindow.open = (url, target, features) => {
-                                    console.log('[BROWSER] Intercepted window.open:', url);
+                                    console.log('[BROWSER] ✅✅ Intercepted window.open:', url, 'target:', target);
 
-                                    // Create new tab in our proxy instead of native browser
+                                    // Create new tab in our proxy
                                     this.createTab(url);
 
-                                    // Return a mock window object to prevent errors
+                                    // Return a mock window object
                                     return {
                                         focus: () => { },
                                         blur: () => { },
-                                        close: () => { }
+                                        close: () => { },
+                                        closed: false,
+                                        location: { href: url }
                                     };
                                 };
 
                                 iframeWindow.__proxyTabsOverridden = true;
+                                console.log('[BROWSER] ✅ window.open override SUCCESS');
                             }
                         } catch (e) {
-                            // Cross-origin errors are expected and can be safely ignored
-                            console.warn('[BROWSER] Could not override window.open (cross-origin):', e.message);
+                            // Cross-origin or security errors
+                            console.warn('[BROWSER] ⚠️ Cannot override window.open:', e.message);
                         }
                     };
+
+                    // Attach immediately
+                    setTimeout(attachWindowOpenOverride, 100);
+
+                    // Attach on load
+                    tab.iframe.addEventListener('load', () => {
+                        if (this.activeTabId === tab.id) {
+                            this.setLoading(false);
+                        }
+                        attachWindowOpenOverride();
+                    });
+
+                    // Also try to re-attach periodically for the first few seconds
+                    // (in case the iframe content loads asynchronously)
+                    let attempts = 0;
+                    const reattachInterval = setInterval(() => {
+                        attachWindowOpenOverride();
+                        attempts++;
+                        if (attempts >= 10) {
+                            clearInterval(reattachInterval);
+                        }
+                    }, 500);
+
                 } else {
                     console.error('Scramjet unavailable');
                     this.setLoading(false);
