@@ -12,32 +12,32 @@
     --border-color: #dadce0;
     --omnibox-bg: #f1f3f4;
     --omnibox-focus-bg: #ffffff;
-    --accent-color: #1a73e8;
+    --accent-color: #202124;
     --danger-color: #d93025;
     --radius-lg: 12px;
     --radius-md: 8px;
-    --logo-filter: none;
+    --logo-filter: invert(1);
 }
 
 html[data-theme="ink"],
 html[data-theme="nebula"],
 html[data-theme="coffee"] {
-    --logo-filter: invert(1) brightness(2);
+    --logo-filter: none;
 }
 
 html[data-theme="ink"] {
-    --bg-color: #000000;
-    --window-bg: #121212;
-    --tab-bar-bg: #000000;
-    --tab-active-bg: #121212;
-    --tab-hover-bg: #1f1f1f;
-    --toolbar-bg: #121212;
+    --bg-color: #0d0d0d;
+    --window-bg: #1a1a1a;
+    --tab-bar-bg: #050505;
+    --tab-active-bg: #1a1a1a;
+    --tab-hover-bg: #242424;
+    --toolbar-bg: #1a1a1a;
     --text-primary: #e8eaed;
     --text-secondary: #9aa0a6;
-    --border-color: #3c4043;
-    --omnibox-bg: #202124;
-    --omnibox-focus-bg: #000000;
-    --accent-color: #8ab4f8;
+    --border-color: #333;
+    --omnibox-bg: #242424;
+    --omnibox-focus-bg: #0d0d0d;
+    --accent-color: #f5f5f5;
 }
 
 html[data-theme="coffee"] {
@@ -258,7 +258,20 @@ body {
     padding: 24px;
     border-radius: var(--radius-lg);
     width: 320px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+}
+
+html[data-theme="ink"] .modal-content {
+    background: #222;
+}
+
+html[data-theme="nebula"] .modal-content {
+    background: #221454;
+}
+
+html[data-theme="coffee"] .modal-content {
+    background: #4e3629;
 }
 
 .modal-content h3 {
@@ -324,14 +337,28 @@ body {
 
 .btn-primary {
     background-color: var(--accent-color);
+    color: var(--bg-color);
+    font-weight: 700;
+}
+
+html:not([data-theme]) .btn-primary,
+html[data-theme="cloud"] .btn-primary {
+    background-color: #202124;
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #1557b0;
+    background-color: var(--accent-color);
+    filter: brightness(1.1);
 }
 
-/* Custom Add App Button Style (for grid) */
+html:not([data-theme]) .btn-primary:hover,
+html[data-theme="cloud"] .btn-primary:hover {
+    background-color: #333;
+    color: white;
+}
+
+/* Custom Add Pin Button Style (for grid) */
 .add-app-btn {
     border: 2px dashed var(--border-color);
     background-color: transparent;
@@ -339,6 +366,7 @@ body {
 
 .add-app-btn .item-icon {
     background-color: transparent;
+    border: 1px dashed var(--border-color);
     color: var(--text-secondary);
     font-size: 24px;
 }

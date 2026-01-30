@@ -372,7 +372,7 @@ class Browser {
         gridHtml += `
             <div class="grid-item add-app-btn" id="add-app-trigger-${tab.id}">
                 <div class="item-icon">+</div>
-                <div class="item-title">Add App</div>
+                <div class="item-title">Add Pin</div>
             </div>
         `;
 
