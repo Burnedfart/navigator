@@ -681,13 +681,43 @@ class Browser {
                                             const isMiddleClick = e.button === 1;
                                             const isCmdOrCtrl = e.ctrlKey || e.metaKey;
 
-                                            if (isNewTab || isMiddleClick || isCmdOrCtrl) {
-                                                // Extract real URL (Bing stores it in data-url or h attribute)
-                                                let url = link.getAttribute('data-url') ||
-                                                    link.getAttribute('h') ||
-                                                    link.href;
+                                            // Get href and decode if it's a Bing redirect
+                                            let url = link.href;
 
-                                                console.log('[BROWSER] ✅✅ Intercepted Link Interaction (' + e.type + '):', url);
+                                            // Bing wraps URLs in their click tracker: /ck/a?...&u=<encoded_url>
+                                            if (url.includes('/ck/a?') || url.includes('&u=')) {
+                                                try {
+                                                    const urlObj = new URL(url);
+                                                    const realUrl = urlObj.searchParams.get('u');
+                                                    if (realUrl) {
+                                                        // Bing uses base64url encoding
+                                                        url = 'https://' + atob(realUrl.replace(/_/g, '/').replace(/-/g, '+')).substring(2);
+                                                    }
+                                                } catch (err) {
+                                                    console.warn('[BROWSER] Failed to decode Bing redirect:', err);
+                                                    // Fall back to original href
+                                                }
+                                            }
+
+                                            // Check if this is a cross-origin navigation
+                                            let isCrossOrigin = false;
+                                            try {
+                                                const linkOrigin = new URL(url).origin;
+                                                const currentOrigin = new URL(iframeWindow.location.href).origin;
+                                                isCrossOrigin = linkOrigin !== currentOrigin;
+                                            } catch (err) {
+                                                // Invalid URL, let it through
+                                            }
+
+                                            // Intercept if:
+                                            // 1. Explicit new tab (target="_blank", middle-click, Ctrl+Click)
+                                            // 2. Cross-origin navigation (would escape iframe context)
+                                            if (isNewTab || isMiddleClick || isCmdOrCtrl || isCrossOrigin) {
+                                                const reason = isNewTab ? 'target=_blank' :
+                                                    isMiddleClick ? 'middle-click' :
+                                                        isCmdOrCtrl ? 'Ctrl+Click' :
+                                                            'cross-origin';
+                                                console.log('[BROWSER] ✅✅ Intercepted Link (' + reason + '):', url);
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 this.createTab(url);
