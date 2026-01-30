@@ -691,8 +691,14 @@ class Browser {
                                                 attributes: Array.from(link.attributes).map(a => ({ name: a.name, value: a.value }))
                                             });
 
-                                            // Get href and decode if it's a Bing redirect
-                                            let url = link.href;
+                                            // Get href - check scramjet-attr-href first for original URL
+                                            let url = link.getAttribute('scramjet-attr-href') || link.href;
+
+                                            console.log('[BROWSER] 🔍 URL extraction:', {
+                                                scramjetAttr: link.getAttribute('scramjet-attr-href'),
+                                                href: link.href,
+                                                final: url
+                                            });
 
                                             // Bing wraps URLs in their click tracker: /ck/a?...&u=<encoded_url>
                                             if (url.includes('/ck/a?') || url.includes('&u=')) {
