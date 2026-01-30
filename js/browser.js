@@ -579,6 +579,40 @@ class Browser {
                             if (iframeWindow && !iframeWindow.__proxyTabsOverridden) {
                                 console.log('[BROWSER] ⚡ Attaching window.open override...');
 
+                                // INTERCEPT TOP.LOCATION ACCESS
+                                // Bing omnibox results try to navigate top window
+                                try {
+                                    const topWin = iframeWindow.top;
+                                    const originalTopLocation = topWin.location;
+
+                                    Object.defineProperty(iframeWindow, 'top', {
+                                        get: () => {
+                                            // Return fake top that redirects location sets to new tabs
+                                            return new Proxy(topWin, {
+                                                get: (target, prop) => {
+                                                    if (prop === 'location') {
+                                                        return new Proxy(originalTopLocation, {
+                                                            set: (locTarget, locProp, value) => {
+                                                                if (locProp === 'href') {
+                                                                    console.log('[BROWSER] 🚨 Blocked top.location.href =', value);
+                                                                    this.createTab(value);
+                                                                    return true;
+                                                                }
+                                                                return Reflect.set(locTarget, locProp, value);
+                                                            }
+                                                        });
+                                                    }
+                                                    return Reflect.get(target, prop);
+                                                }
+                                            });
+                                        },
+                                        configurable: true
+                                    });
+                                    console.log('[BROWSER] ✅ top.location hijacking attached');
+                                } catch (topErr) {
+                                    console.warn('[BROWSER] ⚠️ Could not hijack top.location:', topErr.message);
+                                }
+
                                 // Store the original
                                 iframeWindow.__originalOpen = iframeWindow.open;
 
