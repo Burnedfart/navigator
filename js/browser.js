@@ -338,24 +338,41 @@ class Browser {
 
 
     initializePins() {
-        if (!localStorage.getItem('pins_initialized')) {
-            const defaultApps = [
-                { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-                { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
-                { name: 'YouTube (Unblocked)', url: 'https://yewtu.be', icon: 'YT' },
-                { name: 'SpenFlix (Movies)', url: 'https://spenflix.com', icon: 'SF' },
-                { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' }
-            ];
+        // Version number - increment this whenever you update the default apps list
+        const PINS_VERSION = 2; // v1: initial 2 apps, v2: added YT/SpenFlix/GeForce NOW
+
+        const defaultApps = [
+            { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
+            { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
+            { name: 'YouTube (Unblocked)', url: 'https://yewtu.be', icon: 'YT' },
+            { name: 'SpenFlix (Movies)', url: 'https://watch.spencerdevs.xyz/', icon: 'SF' },
+            { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' }
+        ];
+
+        // Get current version from localStorage
+        const storedVersion = parseInt(localStorage.getItem('pins_version') || '0');
+
+        // If version is outdated or first visit, merge new defaults
+        if (storedVersion < PINS_VERSION) {
             const existing = JSON.parse(localStorage.getItem('custom_apps') || '[]');
 
-            // Check if user already has these in their custom list to avoid duplicates
-            const filteredDefaults = defaultApps.filter(def =>
+            // Filter out defaults that already exist (by URL) to avoid duplicates
+            const newDefaults = defaultApps.filter(def =>
                 !existing.some(ext => ext.url === def.url)
             );
 
-            const combined = [...filteredDefaults, ...existing];
+            // Merge: new defaults first, then existing apps
+            const combined = [...newDefaults, ...existing];
+
             localStorage.setItem('custom_apps', JSON.stringify(combined));
+            localStorage.setItem('pins_version', PINS_VERSION.toString());
             localStorage.setItem('pins_initialized', 'true');
+
+            if (storedVersion > 0) {
+                console.log(`[BROWSER] 📌 Updated pins from v${storedVersion} to v${PINS_VERSION} - added ${newDefaults.length} new apps`);
+            } else {
+                console.log(`[BROWSER] 📌 Initialized pins v${PINS_VERSION}`);
+            }
         }
     }
 
