@@ -46,6 +46,9 @@ class Browser {
         this.btnApplyDisguise = document.getElementById('btn-apply-disguise');
         this.btnResetDisguise = document.getElementById('btn-reset-disguise');
 
+        // Toast Container
+        this.toastContainer = document.getElementById('toast-container');
+
         // Disguise Presets
         this.disguises = {
             'default': {
@@ -860,6 +863,11 @@ class Browser {
     }
 
     closeTab(id) {
+        if (this.tabs.length <= 1) {
+            this.showToast('Error', 'You must have at least one tab open.');
+            return;
+        }
+
         const tabIndex = this.tabs.findIndex(t => t.id === id);
         if (tabIndex === -1) return;
 
@@ -891,6 +899,84 @@ class Browser {
             } else {
                 this.createTab();
             }
+        }
+    }
+
+    showToast(title, message) {
+        if (!this.toastContainer) return;
+
+        // Create indicator if not exists
+        if (!this.moreIndicator) {
+            this.moreIndicator = document.createElement('div');
+            this.moreIndicator.className = 'toast-more-indicator';
+            this.toastContainer.appendChild(this.moreIndicator);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-item';
+        toast.innerHTML = `
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-body">${message}</div>
+            </div>
+            <button class="toast-close" title="Dismiss">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+
+        const closeBtn = toast.querySelector('.toast-close');
+
+        // Wait for removal before processing stack - timer starts only when card hits top
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeToast(toast);
+        });
+
+        this.toastContainer.appendChild(toast);
+
+        // [Animation Fix] Force reflow to ensure the 'toastSlideIn' animation triggers
+        void toast.offsetWidth;
+
+        this.processToastStack();
+    }
+
+    removeToast(toast) {
+        if (!toast || toast.classList.contains('exit')) return;
+        toast.classList.add('exit');
+
+        setTimeout(() => {
+            toast.remove();
+            this.processToastStack();
+        }, 300);
+    }
+
+    processToastStack() {
+        if (!this.toastContainer) return;
+
+        // Update "x more" indicator
+        const activeToasts = Array.from(this.toastContainer.querySelectorAll('.toast-item:not(.exit)'));
+        const hiddenCount = Math.max(0, activeToasts.length - 3);
+
+        if (this.moreIndicator) {
+            if (hiddenCount > 0) {
+                this.moreIndicator.textContent = `${hiddenCount} more`;
+                this.toastContainer.classList.add('has-more');
+            } else {
+                this.toastContainer.classList.remove('has-more');
+            }
+            // Ensure indicator is always at the top of the DOM order so it renders behind or above correctly
+            this.toastContainer.prepend(this.moreIndicator);
+        }
+
+        // Only the actual top card gets to run
+        const topToast = activeToasts[activeToasts.length - 1];
+
+        if (topToast && !topToast.classList.contains('active-timer')) {
+            topToast.classList.add('active-timer');
+            // Auto-dismissal disabled by request
         }
     }
 
