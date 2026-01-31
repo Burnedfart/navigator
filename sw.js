@@ -12,8 +12,9 @@ try {
     }
 }
 
-// Ensure immediate control
-const VERSION = 'v28'; // Idle Recovery Fix
+// Bump to force cache refresh
+const VERSION = 'v29';
+const CACHE_NAME = 'scramjet-proxy-cache-v29';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -50,7 +51,7 @@ if (!scramjetBundle) {
     console.error('SW: ❌ Scramjet bundle not found! __scramjet$bundle is undefined.');
 }
 
-const CACHE_NAME = 'scramjet-proxy-cache-v28';
+
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
