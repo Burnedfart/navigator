@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v30'; // Movie Player Sandbox Fix
-const CACHE_NAME = 'scramjet-proxy-cache-v30';
+const VERSION = 'v31'; // Sandbox & Security Header Fix
+const CACHE_NAME = 'scramjet-proxy-cache-v31';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -139,13 +139,10 @@ async function handleRequest(event) {
             let newHeaders = stripRestrictiveHeaders(response.headers);
 
             if (isNavigationRequest) {
-                if (isIframe) {
-                    newHeaders.delete("Cross-Origin-Embedder-Policy");
-                    newHeaders.delete("Cross-Origin-Opener-Policy");
-                } else {
-                    newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
-                    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-                }
+                // All documents MUST have these headers to work in our isolated environment
+                // If we delete them for iframes, the browser might sandbox or block them.
+                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
+                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
             }
 
             const modifiedResponse = new Response(response.body, {
@@ -183,8 +180,8 @@ async function handleRequest(event) {
             // isIframe is defined above
 
             if (isIframe) {
-                newHeaders.delete("Cross-Origin-Embedder-Policy");
-                newHeaders.delete("Cross-Origin-Opener-Policy");
+                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
+                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
             } else {
                 newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
                 newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");

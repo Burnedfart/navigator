@@ -1447,9 +1447,15 @@ class Browser {
                     tab.iframe.style.position = 'absolute';
 
                     // FIX: "Sandbox Detected" & Permission Issues
-                    // Explicitly remove sandbox and add all common permissions
-                    tab.iframe.removeAttribute('sandbox');
+                    // We use an EXPLICITLY PERMISSIVE sandbox instead of removing it.
+                    // This is more reliable across different browsers for bypassing security checks.
+                    tab.iframe.setAttribute('sandbox', 'allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation allow-downloads allow-storage-access-by-user-activation');
                     tab.iframe.allow = "autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; microphone; midi; payment; picture-in-picture; publickey-credentials-get; screen-wake-lock; speaker-selection; usb; web-share";
+
+                    // Legacy Fullscreen support
+                    tab.iframe.setAttribute('allowfullscreen', 'true');
+                    tab.iframe.setAttribute('webkitallowfullscreen', 'true');
+                    tab.iframe.setAttribute('mozallowfullscreen', 'true');
 
                     this.viewportsContainer.appendChild(tab.iframe);
 
@@ -1735,8 +1741,11 @@ class Browser {
             style.width = style.height = "100%";
 
             // FIX: "Sandbox Detected" & Permission Issues in Cloak
-            iframe.removeAttribute('sandbox');
+            iframe.setAttribute('sandbox', 'allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation allow-downloads allow-storage-access-by-user-activation');
             iframe.allow = "autoplay; camera; clipboard-read; clipboard-write; display-capture; encrypted-media; fullscreen; gamepad; geolocation; microphone; midi; payment; picture-in-picture; publickey-credentials-get; screen-wake-lock; speaker-selection; usb; web-share";
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('webkitallowfullscreen', 'true');
+            iframe.setAttribute('mozallowfullscreen', 'true');
 
             const pLink = localStorage.getItem("pLink") || "https://google.com";
 
