@@ -369,6 +369,120 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             // Perform connection
             await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
             console.log('✅ [PROXY] BareMux transport connected');
+
+            // 8. Connection Keep-Alive & Recovery System
+            // Store transport config for recovery
+            window.ProxyService.transportConfig = {
+                transportPath,
+                wispUrl,
+                bareMuxWorkerPath
+            };
+
+            // Keep-alive ping interval (every 30 seconds)
+            let keepAliveInterval = setInterval(async () => {
+                try {
+                    // BareMux doesn't expose connection status, so we rely on visibility recovery
+                    // This interval keeps the event loop active as a soft keep-alive
+                    console.log('💓 [PROXY] Keep-alive tick');
+                } catch (e) {
+                    console.warn('⚠️ [PROXY] Keep-alive check failed:', e);
+                }
+            }, 30000);
+
+            // Visibility-based recovery - when user returns to tab after being away
+            let lastVisibilityChange = Date.now();
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible') {
+                    const timeSinceHidden = Date.now() - lastVisibilityChange;
+                    console.log(`👀 [PROXY] Tab became visible (was hidden for ${Math.round(timeSinceHidden / 1000)}s)`);
+
+                    // If tab was hidden for more than 60 seconds, verify/recover connection
+                    if (timeSinceHidden > 60000) {
+                        console.log('🔄 [PROXY] Long idle detected, verifying connection...');
+                        try {
+                            await window.ProxyService.verifyAndRecoverConnection();
+                        } catch (e) {
+                            console.error('❌ [PROXY] Recovery failed:', e);
+                        }
+                    }
+                } else {
+                    lastVisibilityChange = Date.now();
+                }
+            });
+
+            // Connection verification and recovery function
+            window.ProxyService.verifyAndRecoverConnection = async function () {
+                const config = window.ProxyService.transportConfig;
+                if (!config || !window.bareMuxConnection) {
+                    console.warn('⚠️ [PROXY] No transport config available for recovery');
+                    return false;
+                }
+
+                console.log('🔍 [PROXY] Testing WebSocket connection...');
+
+                // Quick WebSocket connectivity test
+                const testPromise = new Promise((resolve) => {
+                    const ws = new WebSocket(config.wispUrl);
+                    const timeout = setTimeout(() => {
+                        ws.close();
+                        resolve(false);
+                    }, 5000);
+
+                    ws.onopen = () => {
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve(true);
+                    };
+
+                    ws.onerror = () => {
+                        clearTimeout(timeout);
+                        resolve(false);
+                    };
+
+                    ws.onclose = (e) => {
+                        // If closed before we resolved, it's a failure (unless we closed it ourselves)
+                        if (e.code !== 1000) {
+                            clearTimeout(timeout);
+                            resolve(false);
+                        }
+                    };
+                });
+
+                const isConnected = await testPromise;
+
+                if (isConnected) {
+                    console.log('✅ [PROXY] WebSocket is reachable, re-establishing transport...');
+                    try {
+                        // Re-establish transport (this should handle stale connections internally)
+                        await window.bareMuxConnection.setTransport(
+                            config.transportPath,
+                            [{ websocket: config.wispUrl }]
+                        );
+                        console.log('✅ [PROXY] Transport re-established successfully');
+                        return true;
+                    } catch (e) {
+                        console.error('❌ [PROXY] Transport re-establishment failed:', e);
+                        return false;
+                    }
+                } else {
+                    console.warn('⚠️ [PROXY] WebSocket unreachable, connection may fail');
+                    // Still try to re-establish - the network might come back
+                    try {
+                        await window.bareMuxConnection.setTransport(
+                            config.transportPath,
+                            [{ websocket: config.wispUrl }]
+                        );
+                    } catch (e) {
+                        // Ignore - this is a best-effort recovery
+                    }
+                    return false;
+                }
+            };
+
+            // Also try to recover before any navigation attempt
+            window.ProxyService.ensureConnection = window.ProxyService.verifyAndRecoverConnection;
+
+            console.log('🛡️ [PROXY] Connection recovery system initialized');
         } else {
             console.log('⚠️ [PROXY] Skipping BareMux (requires cross-origin isolation)');
             console.log('ℹ️ [PROXY] Using Scramjet direct WISP transport only');

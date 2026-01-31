@@ -1343,6 +1343,16 @@ class Browser {
             return;
         }
 
+        // Proactive connection recovery for proxied navigation
+        if (input !== 'browser://home' && window.ProxyService.ensureConnection) {
+            try {
+                await window.ProxyService.ensureConnection();
+            } catch (e) {
+                console.warn('[BROWSER] Connection recovery attempt failed:', e);
+                // Continue anyway - the navigation might still work
+            }
+        }
+
         let url = input;
         if (url === 'browser://home') {
             // Already home

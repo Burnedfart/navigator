@@ -13,7 +13,7 @@ try {
 }
 
 // Ensure immediate control
-const VERSION = 'v26'; // Theme Editor Update
+const VERSION = 'v27'; // Connection Recovery Fix
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -50,7 +50,7 @@ if (!scramjetBundle) {
     console.error('SW: ❌ Scramjet bundle not found! __scramjet$bundle is undefined.');
 }
 
-const CACHE_NAME = 'scramjet-proxy-cache-v26';
+const CACHE_NAME = 'scramjet-proxy-cache-v27';
 const STATIC_CACHE_PATTERNS = [
     /\.css$/,
     /\.js$/,
