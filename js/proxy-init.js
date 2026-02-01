@@ -84,10 +84,40 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             }
         };
 
-        // 1. If there's already a waiting worker, show prompt immediately
+        const getWorkerVersion = (worker) => {
+            return new Promise((resolve) => {
+                const channel = new MessageChannel();
+                channel.port1.onmessage = (event) => resolve(event.data);
+                setTimeout(() => resolve(null), 500);
+                worker.postMessage({ type: 'get_version' }, [channel.port2]);
+            });
+        };
+
+        const handleUpdateFound = async (waitingWorker) => {
+            // If no controller, this is fresh install, no prompt needed
+            if (!navigator.serviceWorker.controller) return;
+
+            try {
+                const currentVer = await getWorkerVersion(navigator.serviceWorker.controller);
+                const newVer = await getWorkerVersion(waitingWorker);
+
+                console.log(`[SW] Version check: Current=${currentVer}, New=${newVer}`);
+
+                if (currentVer && newVer && currentVer === newVer) {
+                    console.log('[SW] 🔄 Versions match. Ignoring logicless update.');
+                    return;
+                }
+            } catch (e) {
+                console.warn('[SW] Version check failed, defaulting to prompt:', e);
+            }
+
+            console.log('🔄 [SW] New version available, prompting user...');
+            showUpdatePrompt(waitingWorker);
+        };
+
+        // 1. If there's already a waiting worker, check it
         if (registration.waiting) {
-            console.log('🔄 [SW] New version already waiting');
-            showUpdatePrompt(registration.waiting);
+            handleUpdateFound(registration.waiting);
         }
 
         // 2. If a new worker is found, listen for it to be installed
@@ -95,9 +125,8 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             const newWorker = registration.installing;
             console.log('🔄 [SW] Update found, installing...');
             newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('🔄 [SW] Update installed and waiting');
-                    showUpdatePrompt(newWorker);
+                if (newWorker.state === 'installed') {
+                    handleUpdateFound(newWorker);
                 }
             });
         });

@@ -268,5 +268,9 @@ self.addEventListener('message', async (event) => {
             try { scramjet.db.close(); } catch (e) { }
         }
         console.log('SW: 🔄 Config invalidated and DB handle closed');
+    } else if (event.data?.type === 'get_version') {
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage(VERSION);
+        }
     }
 });
