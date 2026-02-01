@@ -88,7 +88,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             return new Promise((resolve) => {
                 const channel = new MessageChannel();
                 channel.port1.onmessage = (event) => resolve(event.data);
-                setTimeout(() => resolve(null), 500);
+                setTimeout(() => resolve(null), 1000);
                 worker.postMessage({ type: 'get_version' }, [channel.port2]);
             });
         };
@@ -102,6 +102,11 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                 const newVer = await getWorkerVersion(waitingWorker);
 
                 console.log(`[SW] Version check: Current=${currentVer}, New=${newVer}`);
+
+                if (!currentVer) {
+                    console.log('[SW] 🔄 Legacy worker detected (no version). Skipping prompt to avoid annoyance.');
+                    return;
+                }
 
                 if (currentVer && newVer && currentVer === newVer) {
                     console.log('[SW] 🔄 Versions match. Ignoring logicless update.');

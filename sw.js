@@ -13,7 +13,7 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v32'; // Syntax Fix for Iframe Permissions
+const VERSION = 'v33'; // Bumped for fix
 const CACHE_NAME = 'scramjet-proxy-cache-v32';
 
 self.addEventListener('install', (event) => {
