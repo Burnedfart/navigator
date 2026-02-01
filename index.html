@@ -96,6 +96,14 @@
                             </svg>
                             <span>Disguise</span>
                         </button>
+                        <button class="nav-item" data-target="section-panic">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 8v4M12 16h.01" />
+                            </svg>
+                            <span>Panic Button</span>
+                        </button>
                     </div>
 
                 </div>
@@ -254,11 +262,27 @@
                                         <option value="google-docs">Google Docs</option>
                                         <option value="gmail">Gmail</option>
                                     </select>
-                                    <div class="disguise-actions" style="margin-top: 16px;">
+                                    <div class="settings-actions">
                                         <button id="btn-apply-disguise" class="btn-primary">Apply Disguise</button>
                                         <button id="btn-reset-disguise" class="btn-secondary">Reset</button>
                                     </div>
                                 </div>
+                            </div>
+                        </section>
+
+                        <section id="section-panic" class="settings-content-section">
+                            <h4 class="panic-header">
+                                <span>Panic Button</span>
+                            </h4>
+                            <div class="panic-row">
+                                <input type="text" id="panic-key-input" class="panic-input key-input" placeholder="Key"
+                                    readonly autocomplete="off">
+                                <input type="text" id="panic-url-input" class="panic-input url-input"
+                                    placeholder="URL to Redirect to" autocomplete="off">
+                            </div>
+                            <div class="settings-actions">
+                                <button id="btn-save-panic" class="btn-primary">Save Panic Settings</button>
+                                <button id="btn-clear-panic" class="btn-secondary">Reset</button>
                             </div>
                         </section>
                     </div>

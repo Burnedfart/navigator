@@ -47,6 +47,12 @@ class Browser {
         this.btnApplyDisguise = document.getElementById('btn-apply-disguise');
         this.btnResetDisguise = document.getElementById('btn-reset-disguise');
 
+        // Panic Button Elements
+        this.panicKeyInput = document.getElementById('panic-key-input');
+        this.panicUrlInput = document.getElementById('panic-url-input');
+        this.btnSavePanic = document.getElementById('btn-save-panic');
+        this.btnClearPanic = document.getElementById('btn-clear-panic');
+
         // Performance Elements
         this.perfToggles = {
             animations: document.getElementById('perf-disable-animations'),
@@ -159,6 +165,35 @@ class Browser {
                 this.resetDisguise();
             });
         }
+
+        // Panic Button Event Bindings
+        if (this.panicKeyInput) {
+            // Capture key press for panic button
+            this.panicKeyInput.addEventListener('click', () => {
+                this.panicKeyInput.focus();
+            });
+            this.panicKeyInput.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                const key = e.key;
+                this.panicKeyInput.value = key;
+                this.panicKeyInput.blur();
+            });
+        }
+        if (this.btnSavePanic) {
+            this.btnSavePanic.addEventListener('click', () => {
+                this.savePanicSettings();
+            });
+        }
+        if (this.btnClearPanic) {
+            this.btnClearPanic.addEventListener('click', () => {
+                this.clearPanicSettings();
+            });
+        }
+
+        // Global Panic Key Listener
+        document.addEventListener('keydown', (e) => {
+            this.handlePanicKey(e);
+        });
 
         if (this.errorOkBtn) {
             this.errorOkBtn.addEventListener('click', () => this.hideError());
@@ -610,6 +645,9 @@ class Browser {
             const savedDisguise = localStorage.getItem('tab_disguise') || 'default';
             this.disguiseSelect.value = savedDisguise;
         }
+        // Load panic button settings
+        this.loadPanicSettings();
+
         this.settingsModal.classList.remove('hidden');
         this.updateThemeActiveState();
 
@@ -1691,6 +1729,79 @@ class Browser {
             document.head.appendChild(link);
         }
         link.href = href;
+    }
+
+    // Panic Button Methods
+    savePanicSettings() {
+        const key = this.panicKeyInput.value.trim();
+        let url = this.panicUrlInput.value.trim();
+
+        if (!key) {
+            alert('Please set a panic key first.');
+            return;
+        }
+
+        if (!url) {
+            alert('Please enter a redirect URL.');
+            return;
+        }
+
+        // Add https protocol if missing
+        if (!/^https?:\/\//i.test(url)) {
+            url = 'https://' + url;
+            this.panicUrlInput.value = url;
+        }
+
+        // Basic URL validation
+        try {
+            new URL(url);
+        } catch (e) {
+            alert('Please enter a valid URL.');
+            return;
+        }
+
+        localStorage.setItem('panic_key', key);
+        localStorage.setItem('panic_url', url);
+        console.log(`[PANIC] Saved panic button: Key="${key}", URL="${url}"`);
+        alert('Panic button settings saved!');
+    }
+
+    clearPanicSettings() {
+        localStorage.removeItem('panic_key');
+        localStorage.removeItem('panic_url');
+        this.panicKeyInput.value = '';
+        this.panicUrlInput.value = '';
+        console.log('[PANIC] Cleared panic button settings');
+    }
+
+    loadPanicSettings() {
+        const key = localStorage.getItem('panic_key') || '';
+        const url = localStorage.getItem('panic_url') || '';
+        if (this.panicKeyInput) this.panicKeyInput.value = key;
+        if (this.panicUrlInput) this.panicUrlInput.value = url;
+    }
+
+    handlePanicKey(e) {
+        const panicKey = localStorage.getItem('panic_key');
+        const panicUrl = localStorage.getItem('panic_url');
+
+        if (!panicKey || !panicUrl) return;
+
+        // Don't trigger if user is typing in an input field
+        const target = e.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+            return;
+        }
+
+        // Check if the pressed key matches the panic key
+        if (e.key === panicKey) {
+            e.preventDefault();
+            console.log('[PANIC] 🚨 Panic button triggered! Redirect to:', panicUrl);
+
+            // Redirect the top-level browser window (native tab)
+            // Using .replace() so it's harder to just "Go Back"
+            window.top.location.replace(panicUrl);
+        }
     }
 
     openCloaked() {
