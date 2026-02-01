@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v33'; // Bumped for fix
-const CACHE_NAME = 'scramjet-proxy-cache-v32';
+const VERSION = 'v34';
+const CACHE_NAME = 'scramjet-proxy-cache-v33';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -163,8 +163,16 @@ async function handleRequest(event) {
         // Standard network request for app files
         if (isStaticResource(url)) {
             const cache = await caches.open(CACHE_NAME);
-            const cachedResponse = await cache.match(event.request);
-            if (cachedResponse) return cachedResponse;
+
+            // Check if this is a hard refresh (Ctrl+Shift+R)
+            const isHardRefresh = event.request.cache === 'reload' ||
+                event.request.headers.get('cache-control') === 'no-cache' ||
+                event.request.headers.get('pragma') === 'no-cache';
+
+            if (!isHardRefresh) {
+                const cachedResponse = await cache.match(event.request);
+                if (cachedResponse) return cachedResponse;
+            }
 
             const response = await fetch(event.request);
             if (response.ok) {
