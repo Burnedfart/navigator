@@ -273,6 +273,50 @@ html[data-theme="coffee"] .nav-item.active {
     color: var(--accent-color);
 }
 
+.sidebar-actions {
+    display: flex;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    background: var(--tab-bar-bg);
+}
+
+.action-btn {
+    flex: 1;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    transition: all 0.2s ease;
+    padding: 0 !important;
+}
+
+#sidebar-save-btn {
+    color: var(--accent-color) !important;
+    border-right: 1px solid var(--border-color) !important;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+html[data-theme="cloud"] .action-btn:hover {
+    background: rgba(0, 0, 0, 0.03) !important;
+}
+
+.action-btn svg {
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
 /* Settings Main Area */
 .settings-main {
     flex: 1;

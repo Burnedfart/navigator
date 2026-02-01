@@ -44,14 +44,30 @@ class Browser {
 
         // Disguise Elements
         this.disguiseSelect = document.getElementById('disguise-select');
-        this.btnApplyDisguise = document.getElementById('btn-apply-disguise');
-        this.btnResetDisguise = document.getElementById('btn-reset-disguise');
 
         // Panic Button Elements
         this.panicKeyInput = document.getElementById('panic-key-input');
         this.panicUrlInput = document.getElementById('panic-url-input');
-        this.btnSavePanic = document.getElementById('btn-save-panic');
-        this.btnClearPanic = document.getElementById('btn-clear-panic');
+
+        // Sidebar Action Buttons
+        this.sidebarSaveBtn = document.getElementById('sidebar-save-btn');
+        this.sidebarResetBtn = document.getElementById('sidebar-reset-btn');
+
+        // Unsaved Changes Modal
+        this.unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+        this.btnDiscardChanges = document.getElementById('btn-discard-changes');
+        this.btnSaveAndClose = document.getElementById('btn-save-and-close');
+
+        // Reset Confirmation Modal
+        this.resetConfirmationModal = document.getElementById('reset-confirmation-modal');
+        this.btnCancelReset = document.getElementById('btn-cancel-reset');
+        this.btnConfirmReset = document.getElementById('btn-confirm-reset');
+
+        // State tracking for unsaved changes
+        this.hasUnsavedChanges = false;
+        this.savedDisguiseValue = null;
+        this.savedPanicKey = null;
+        this.savedPanicUrl = null;
 
         // Performance Elements
         this.perfToggles = {
@@ -154,19 +170,14 @@ class Browser {
             });
         }
 
-        // Disguise Event Bindings
-        if (this.btnApplyDisguise) {
-            this.btnApplyDisguise.addEventListener('click', () => {
-                this.applyDisguise();
-            });
-        }
-        if (this.btnResetDisguise) {
-            this.btnResetDisguise.addEventListener('click', () => {
-                this.resetDisguise();
+        // Disguise Change Detection
+        if (this.disguiseSelect) {
+            this.disguiseSelect.addEventListener('change', () => {
+                this.checkForUnsavedChanges();
             });
         }
 
-        // Panic Button Event Bindings
+        // Panic Button Change Detection
         if (this.panicKeyInput) {
             // Capture key press for panic button
             this.panicKeyInput.addEventListener('click', () => {
@@ -177,16 +188,48 @@ class Browser {
                 const key = e.key;
                 this.panicKeyInput.value = key;
                 this.panicKeyInput.blur();
+                this.checkForUnsavedChanges();
             });
         }
-        if (this.btnSavePanic) {
-            this.btnSavePanic.addEventListener('click', () => {
-                this.savePanicSettings();
+        if (this.panicUrlInput) {
+            this.panicUrlInput.addEventListener('input', () => {
+                this.checkForUnsavedChanges();
             });
         }
-        if (this.btnClearPanic) {
-            this.btnClearPanic.addEventListener('click', () => {
-                this.clearPanicSettings();
+
+        // Sidebar Action Buttons
+        if (this.sidebarSaveBtn) {
+            this.sidebarSaveBtn.addEventListener('click', () => {
+                this.saveSettings();
+            });
+        }
+        if (this.sidebarResetBtn) {
+            this.sidebarResetBtn.addEventListener('click', () => {
+                this.openResetConfirmation();
+            });
+        }
+
+        // Unsaved Changes Modal
+        if (this.btnDiscardChanges) {
+            this.btnDiscardChanges.addEventListener('click', () => {
+                this.discardAndClose();
+            });
+        }
+        if (this.btnSaveAndClose) {
+            this.btnSaveAndClose.addEventListener('click', () => {
+                this.saveAndCloseSettings();
+            });
+        }
+
+        // Reset Confirmation Modal
+        if (this.btnCancelReset) {
+            this.btnCancelReset.addEventListener('click', () => {
+                this.closeResetConfirmation();
+            });
+        }
+        if (this.btnConfirmReset) {
+            this.btnConfirmReset.addEventListener('click', () => {
+                this.confirmReset();
             });
         }
 
@@ -648,6 +691,12 @@ class Browser {
         // Load panic button settings
         this.loadPanicSettings();
 
+        // Save initial state for change detection
+        this.savedDisguiseValue = this.disguiseSelect ? this.disguiseSelect.value : 'default';
+        this.savedPanicKey = this.panicKeyInput ? this.panicKeyInput.value : '';
+        this.savedPanicUrl = this.panicUrlInput ? this.panicUrlInput.value : '';
+        this.hasUnsavedChanges = false;
+
         this.settingsModal.classList.remove('hidden');
         this.updateThemeActiveState();
 
@@ -827,7 +876,11 @@ class Browser {
     }
 
     closeSettings() {
-        this.settingsModal.classList.add('hidden');
+        if (this.hasUnsavedChanges) {
+            this.openUnsavedChangesModal();
+        } else {
+            this.settingsModal.classList.add('hidden');
+        }
     }
 
     setTheme(theme) {
@@ -1763,7 +1816,6 @@ class Browser {
         localStorage.setItem('panic_key', key);
         localStorage.setItem('panic_url', url);
         console.log(`[PANIC] Saved panic button: Key="${key}", URL="${url}"`);
-        alert('Panic button settings saved!');
     }
 
     clearPanicSettings() {
@@ -1876,6 +1928,93 @@ class Browser {
             console.log('[BROWSER] ✅ Cloak setup complete, redirecting original tab...');
             location.replace(pLink);
         }
+    }
+
+    // Settings Change Tracking & Modals
+    checkForUnsavedChanges() {
+        const currentDisguise = this.disguiseSelect ? this.disguiseSelect.value : 'default';
+        const currentPanicKey = this.panicKeyInput ? this.panicKeyInput.value : '';
+        const currentPanicUrl = this.panicUrlInput ? this.panicUrlInput.value : '';
+
+        this.hasUnsavedChanges = (
+            currentDisguise !== this.savedDisguiseValue ||
+            currentPanicKey !== this.savedPanicKey ||
+            currentPanicUrl !== this.savedPanicUrl
+        );
+
+        console.log('[SETTINGS] Unsaved changes:', this.hasUnsavedChanges);
+    }
+
+    saveSettings() {
+        // Save disguise
+        this.applyDisguise();
+
+        // Save panic settings
+        this.savePanicSettings();
+
+        // Update saved state
+        this.savedDisguiseValue = this.disguiseSelect ? this.disguiseSelect.value : 'default';
+        this.savedPanicKey = this.panicKeyInput ? this.panicKeyInput.value : '';
+        this.savedPanicUrl = this.panicUrlInput ? this.panicUrlInput.value : '';
+        this.hasUnsavedChanges = false;
+
+        console.log('[SETTINGS] Settings saved successfully');
+    }
+
+    saveAndCloseSettings() {
+        this.saveSettings();
+        this.closeUnsavedChangesModal();
+        this.settingsModal.classList.add('hidden');
+    }
+
+    discardAndClose() {
+        // Revert to saved values
+        if (this.disguiseSelect) {
+            this.disguiseSelect.value = this.savedDisguiseValue;
+        }
+        if (this.panicKeyInput) {
+            this.panicKeyInput.value = this.savedPanicKey;
+        }
+        if (this.panicUrlInput) {
+            this.panicUrlInput.value = this.savedPanicUrl;
+        }
+
+        this.hasUnsavedChanges = false;
+        this.closeUnsavedChangesModal();
+        this.settingsModal.classList.add('hidden');
+    }
+
+    openUnsavedChangesModal() {
+        this.unsavedChangesModal.classList.remove('hidden');
+    }
+
+    closeUnsavedChangesModal() {
+        this.unsavedChangesModal.classList.add('hidden');
+    }
+
+    openResetConfirmation() {
+        this.resetConfirmationModal.classList.remove('hidden');
+    }
+
+    closeResetConfirmation() {
+        this.resetConfirmationModal.classList.add('hidden');
+    }
+
+    confirmReset() {
+        // Reset disguise to default
+        this.resetDisguise();
+
+        // Clear panic settings
+        this.clearPanicSettings();
+
+        // Update saved state
+        this.savedDisguiseValue = 'default';
+        this.savedPanicKey = '';
+        this.savedPanicUrl = '';
+        this.hasUnsavedChanges = false;
+
+        this.closeResetConfirmation();
+        console.log('[SETTINGS] Settings reset to default');
     }
 }
 
