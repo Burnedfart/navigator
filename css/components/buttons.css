@@ -1,0 +1,167 @@
+/* Base Button - Shared Properties */
+.btn-primary,
+.btn-secondary,
+.full-width-btn {
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+/* Primary Button */
+.btn-primary {
+    background-color: var(--text-primary);
+    color: var(--window-bg-solid);
+    font-weight: 600;
+    border: 1px solid var(--text-primary) !important;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color) !important;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(113, 113, 122, 0.08);
+}
+
+html[data-theme="cloud"] .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Full Width Button */
+.full-width-btn {
+    width: 100%;
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    border: 0.5px solid var(--accent-color);
+}
+
+/* Update Button (Themed) */
+.update-btn-themed {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 14px;
+    font-family: 'Segoe UI';
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 8px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+}
+
+.update-btn-themed:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.update-btn-themed:active {
+    transform: translateY(0);
+}
+
+/* Modal Action Buttons */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+/* Add App Button (Custom Style) */
+.add-app-btn {
+    border: 2px dashed var(--border-color);
+    background-color: transparent;
+}
+
+.add-app-btn .item-icon {
+    background-color: transparent;
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    font-size: 24px;
+}
+
+.add-app-btn:hover {
+    border-color: var(--text-secondary);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Navigation Buttons */
+.nav-btn,
+.new-tab-btn {
+    border: none;
+    background: transparent;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-btn:hover,
+.new-tab-btn:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: var(--text-primary);
+}
+
+.nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: transparent !important;
+}
+
+.nav-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.new-tab-btn {
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.new-tab-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Cloak Button */
+#btn-trigger-cloak {
+    width: 100%;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 0.5px solid var(--accent-color);
+    transition: background 0.2s;
+    background-color: transparent;
+    color: var(--text-secondary);
+}

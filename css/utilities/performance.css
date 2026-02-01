@@ -1,0 +1,28 @@
+/* Disable All Animations */
+html.perf-no-animations *,
+html.perf-no-animations *::before,
+html.perf-no-animations *::after {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Disable All Shadows */
+html.perf-no-shadows *:not(.nav-item),
+html.perf-no-shadows *::before,
+html.perf-no-shadows *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+/* Re-allow inset shadows used as strokes to maintain UI feedback */
+html.perf-no-shadows .nav-item.active {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Disable All Blur Effects */
+html.perf-no-blur *,
+html.perf-no-blur *::before,
+html.perf-no-blur *::after {
+    filter: none !important;
+    backdrop-filter: none !important;
+}

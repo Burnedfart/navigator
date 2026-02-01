@@ -1,0 +1,213 @@
+/* Title Bar Container */
+.title-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--tab-bar-bg);
+    padding: 6px 8px 0 8px;
+    height: 44px;
+    user-select: none;
+}
+
+/* Tabs Container */
+.tabs-container {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 0;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.tabs-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Individual Tab */
+.tab {
+    display: flex;
+    align-items: center;
+    max-width: 240px;
+    min-width: 120px;
+    flex: 1;
+    height: 34px;
+    background-color: transparent;
+    border-radius: var(--radius-md);
+    padding: 0 12px;
+    cursor: default;
+    position: relative;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    margin: 0 2px;
+}
+
+/* Tab Separator - Only between inactive tabs */
+.tab:not(.active):not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    top: 25%;
+    bottom: 25%;
+    width: 1.5px;
+    background-color: var(--border-color);
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.tab.active::after,
+.tab:has(+ .tab.active)::after {
+    opacity: 0 !important;
+}
+
+/* Tab States */
+.tab:hover {
+    background-color: var(--tab-hover-bg);
+}
+
+.tab.active {
+    background-color: var(--tab-active-bg);
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+}
+
+.tab.sleeping {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Tab Sleep Icon */
+.tab-sleep-icon {
+    display: none;
+    margin-right: 6px;
+    color: var(--accent-color);
+    animation: pulse-sleep 2s infinite ease-in-out;
+}
+
+.tab.sleeping .tab-sleep-icon {
+    display: block;
+}
+
+@keyframes pulse-sleep {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Theme-Specific Tab Styles */
+html[data-theme="ink"] .tab.active {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Tab Internal Elements */
+.tab-favicon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    background-color: #ccc;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tab-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-close {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+    opacity: 1;
+}
+
+.tab-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Tab Tooltip */
+.tab-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: var(--window-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+    opacity: 0;
+    transform: translateY(-4px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
+    top: 48px;
+}
+
+.tab-tooltip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--accent-color-rgb), 0.05);
+    border-radius: inherit;
+    z-index: -1;
+}
+
+.tab-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.tooltip-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.tooltip-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.tooltip-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+    opacity: 0.3;
+}

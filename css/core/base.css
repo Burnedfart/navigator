@@ -1,0 +1,83 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.browser-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Logo & Branding */
+.logo-container {
+    padding: 0 12px;
+    color: var(--text-secondary);
+    cursor: default;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.logo-container:hover {
+    color: var(--text-primary);
+}
+
+.app-logo-img,
+.home-logo-img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: var(--logo-filter);
+}
+
+.home-logo-img {
+    width: 80px;
+    height: 80px;
+}
+
+/* Animations */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s cubic-bezier(0.6, 0.05, 0.4, 1.0) infinite;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUpFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(40px) scale(0.85);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}

@@ -1,0 +1,237 @@
+/* Form Groups */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    color: var(--text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+    border-color: #71717a;
+    box-shadow: 0 0 0 2px rgba(113, 113, 122, 0.1);
+}
+
+/* Omnibox Input */
+.omnibox-container {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.omnibox-wrapper {
+    width: 100%;
+    max-width: none;
+    height: 36px;
+    background-color: var(--omnibox-bg);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.omnibox-wrapper:focus-within {
+    background-color: var(--omnibox-focus-bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.lock-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+    margin-right: 10px;
+}
+
+.omnibox-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+}
+
+/* Panic Button Inputs */
+.panic-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: var(--omnibox-bg);
+    padding: 14px;
+    border-radius: var(--radius-lg);
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.panic-input {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--window-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.panic-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.panic-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.1);
+}
+
+.key-input {
+    width: 70px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.url-input {
+    flex: 1;
+}
+
+.panic-input[readonly] {
+    cursor: text;
+    user-select: none;
+}
+
+.panic-input[readonly]:hover {
+    background-color: var(--tab-hover-bg);
+}
+
+/* Dark theme overrides for panic inputs */
+html[data-theme="ink"] .panic-row,
+html[data-theme="nebula"] .panic-row,
+html[data-theme="coffee"] .panic-row {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+html[data-theme="ink"] .panic-input,
+html[data-theme="nebula"] .panic-input,
+html[data-theme="coffee"] .panic-input {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Disguise Dropdown */
+.disguise-dropdown {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--omnibox-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.disguise-dropdown:focus {
+    border-color: var(--accent-color);
+}
+
+/* Checkboxes - Custom Styled */
+.settings-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+    position: relative;
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.settings-label:hover {
+    color: var(--accent-color);
+}
+
+.settings-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.settings-label .settings-text {
+    padding-left: 28px;
+    position: relative;
+    line-height: 20px;
+}
+
+.settings-label .settings-text::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 18px;
+    width: 18px;
+    background-color: var(--omnibox-bg);
+    border: 1.5px solid var(--border-color);
+    border-radius: 5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-label:hover .settings-text::before {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(var(--accent-color-rgb), 0.1);
+}
+
+.settings-label input:checked~.settings-text::before {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.settings-label .settings-text::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg) scale(0);
+    width: 4px;
+    height: 8px;
+    border: solid var(--window-bg-solid);
+    border-width: 0 2.5px 2.5px 0;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.settings-label input:checked~.settings-text::after {
+    transform: translateY(-55%) rotate(45deg) scale(1);
+}
+
+.settings-label:active .settings-text::before {
+    transform: translateY(-50%) scale(0.9);
+}
