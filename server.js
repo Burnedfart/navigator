@@ -16,8 +16,8 @@ try {
     console.log("✅ SSL certificates loaded successfully");
 } catch (err) {
     console.error("❌ Failed to load SSL certificates:", err.message);
-    console.error("   Make sure certbot certificates exist at /etc/letsencrypt/live/" + DOMAIN);
-    process.exit(1);
+    console.error("   Running in HTTP-only mode (Cloudflare Tunnel/Worker will handle SSL)");
+    httpsOptions = null;
 }
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -139,18 +139,22 @@ function shutdown() {
 const PORT = parseInt(process.env.PORT || "3000");
 const HOST = "0.0.0.0";
 
-server.listen(PORT, HOST, () => {
-    console.log("🚀 Scramjet Proxy Server with WISP (Dual HTTP/HTTPS)");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log(`📡 HTTPS Server: https://${DOMAIN}:${PORT}`);
-    console.log(`🔌 WISP Endpoint: wss://${DOMAIN}:${PORT}/wisp/`);
-    console.log(`🏥 Health Check: https://${DOMAIN}:${PORT}/api/health`);
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("\nServing static files:");
-    console.log(`  📂 Root: ${__dirname}`);
-    console.log(`  📦 Lib: /lib/ (Static Assets)`);
-    console.log("\nPress Ctrl+C to stop");
-});
+if (httpsOptions) {
+    server.listen(PORT, HOST, () => {
+        console.log("🚀 Scramjet Proxy Server with WISP (Dual HTTP/HTTPS)");
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log(`📡 HTTPS Server: https://${DOMAIN}:${PORT}`);
+        console.log(`🔌 WISP Endpoint: wss://${DOMAIN}:${PORT}/wisp/`);
+        console.log(`🏥 Health Check: https://${DOMAIN}:${PORT}/api/health`);
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("\nServing static files:");
+        console.log(`  📂 Root: ${__dirname}`);
+        console.log(`  📦 Lib: /lib/ (Static Assets)`);
+        console.log("\nPress Ctrl+C to stop");
+    });
+} else {
+    console.log("⚠️ SSL not active. HTTPS server skipped.");
+}
 
 // Start HTTP server on port 8080 for Cloudflare Worker
 const HTTP_PORT = 8080;

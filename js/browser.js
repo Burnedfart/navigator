@@ -1392,7 +1392,7 @@ class Browser {
             if (url.includes('.') && !url.includes(' ')) {
                 url = 'https://' + url;
             } else {
-                url = 'https://bing.com/search?q=' + encodeURIComponent(url);
+                url = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
             }
         }
 
