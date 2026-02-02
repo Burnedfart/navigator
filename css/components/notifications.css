@@ -31,6 +31,49 @@
     display: flex !important;
 }
 
+#session-restore-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    background: var(--window-bg);
+    border: 1px solid var(--accent-color);
+    color: var(--text-primary);
+    padding: 18px 26px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 420px;
+}
+
+#session-restore-banner.hidden {
+    transform: translate(-50%, -40%) scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+}
+
+
+#session-restore-banner .warning-title {
+    color: var(--accent-color);
+    font-size: 16px;
+}
+
+#session-restore-banner .warning-message {
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.session-restore-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+#session-restore-btn {
+    margin-left: 0;
+}
+
 /* Update Banner Styling */
 #update-banner {
     background: var(--window-bg);

@@ -3,8 +3,7 @@ class Browser {
         this.tabs = [];
         this.activeTabId = null;
         this.nextTabId = 1;
-        this.maxTabs = 10;
-
+        this.maxTabs = 15;
 
         this.blockedKeywords = ["cG9ybg==", "eHh4", "YWR1bHQ=", "c2V4"];
 
@@ -17,6 +16,9 @@ class Browser {
         this.logo = document.querySelector('.logo-container img');
         this.bookmarkBtn = document.getElementById('bookmark-btn');
         this.bookmarksBar = document.getElementById('bookmarks-bar');
+        this.sessionBanner = document.getElementById('session-restore-banner');
+        this.sessionRestoreBtn = document.getElementById('session-restore-btn');
+        this.sessionDiscardBtn = document.getElementById('session-discard-btn');
 
         // Modal Elements
         this.modal = document.getElementById('custom-app-modal');
@@ -81,6 +83,10 @@ class Browser {
         };
         this.startTime = Date.now();
         this.monitorInterval = null;
+        this.sessionKey = 'browser_tab_session';
+        this.pendingSessionData = null;
+        this.sessionSaveSuppressed = false;
+        this.sessionPromptActive = false;
 
         // Tooltip Elements
         this.tooltip = {
@@ -187,6 +193,12 @@ class Browser {
                 if (e.target === this.errorModal) this.hideError();
             });
         }
+        if (this.sessionRestoreBtn) {
+            this.sessionRestoreBtn.addEventListener('click', () => this.handleSessionRestore());
+        }
+        if (this.sessionDiscardBtn) {
+            this.sessionDiscardBtn.addEventListener('click', () => this.handleSessionDiscard());
+        }
 
         // Performance Event Bindings
         Object.keys(this.perfToggles).forEach(key => {
@@ -277,8 +289,12 @@ class Browser {
 
         const params = new URLSearchParams(window.location.search);
         const urlToOpen = params.get('url');
+        const isDeepLink = urlToOpen && urlToOpen !== 'browser://home';
+        let handledInitialTabs = false;
 
-        if (urlToOpen && urlToOpen !== 'browser://home') {
+        if (!isDeepLink && this.maybePromptSessionRestore()) {
+            handledInitialTabs = true;
+        } else if (isDeepLink) {
             const decodedUrl = decodeURIComponent(urlToOpen);
 
             const cleanUrl = window.location.origin + window.location.pathname;
@@ -286,7 +302,10 @@ class Browser {
 
             console.log('[BROWSER] Deep-linking to:', decodedUrl);
             this.createTab(decodedUrl);
-        } else {
+            handledInitialTabs = true;
+        }
+
+        if (!handledInitialTabs) {
             this.createTab();
         }
 
@@ -300,6 +319,150 @@ class Browser {
 
         // Start Monitor
         this.startMonitor();
+    }
+
+    maybePromptSessionRestore() {
+        const session = this.getStoredSessionData();
+        if (!session || !Array.isArray(session.tabs) || session.tabs.length === 0) {
+            return false;
+        }
+
+        this.pendingSessionData = session;
+        this.showSessionPrompt();
+        return true;
+    }
+
+    getStoredSessionData() {
+        try {
+            const raw = localStorage.getItem(this.sessionKey);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.tabs)) return null;
+            return parsed;
+        } catch (e) {
+            console.warn('[SESSION] Failed to parse saved tabs:', e);
+            this.clearStoredSession();
+            return null;
+        }
+    }
+
+    showSessionPrompt() {
+        if (!this.sessionBanner || this.sessionPromptActive) return;
+        this.sessionBanner.classList.remove('hidden');
+        if (this.newTabBtn) this.newTabBtn.disabled = true;
+        this.sessionPromptActive = true;
+    }
+
+    hideSessionPrompt() {
+        if (!this.sessionBanner || !this.sessionPromptActive) return;
+        this.sessionBanner.classList.add('hidden');
+        if (this.newTabBtn) this.newTabBtn.disabled = false;
+        this.sessionPromptActive = false;
+    }
+
+    handleSessionRestore() {
+        this.hideSessionPrompt();
+        if (!this.pendingSessionData) {
+            this.createTab();
+            return;
+        }
+        this.restoreSession(this.pendingSessionData);
+        this.pendingSessionData = null;
+    }
+
+    handleSessionDiscard() {
+        this.hideSessionPrompt();
+        this.clearStoredSession();
+        this.pendingSessionData = null;
+        this.createTab();
+    }
+
+    restoreSession(sessionData) {
+        if (!sessionData || !Array.isArray(sessionData.tabs)) {
+            this.createTab();
+            return;
+        }
+
+        this.sessionSaveSuppressed = true;
+        this.clearAllTabs();
+
+        for (const entry of sessionData.tabs) {
+            if (this.tabs.length >= this.maxTabs) break;
+            if (!entry || typeof entry.url !== 'string') continue;
+            const url = entry.url;
+            if (url !== 'browser://home' && this.isUrlBlocked(url)) continue;
+            this.createTab(url);
+        }
+
+        this.sessionSaveSuppressed = false;
+
+        if (this.tabs.length === 0) {
+            this.createTab();
+            return;
+        }
+
+        const desiredIndex = Math.min(Math.max(0, Number(sessionData.activeIndex) || 0), this.tabs.length - 1);
+        const desiredTab = this.tabs[desiredIndex];
+        if (desiredTab) {
+            this.switchTab(desiredTab.id);
+        }
+
+        this.saveSession();
+    }
+
+    clearAllTabs() {
+        while (this.tabs.length) {
+            const tab = this.tabs.pop();
+            this.cleanupTabResources(tab);
+            if (tab.element) tab.element.remove();
+            if (tab.iframe) tab.iframe.remove();
+            if (tab.homeElement) tab.homeElement.remove();
+        }
+        this.activeTabId = null;
+        this.nextTabId = 1;
+    }
+
+    cleanupTabResources(tab) {
+        const intervals = [
+            { key: '__syncInterval', label: 'sync interval' },
+            { key: '__overrideInterval', label: 'override interval' }
+        ];
+        intervals.forEach(({ key, label }) => {
+            if (tab[key]) {
+                clearInterval(tab[key]);
+                tab[key] = null;
+                console.log(`[PERFORMANCE] Cleared ${label} for tab`, tab.id);
+            }
+        });
+    }
+
+    saveSession() {
+        if (this.sessionSaveSuppressed) return;
+        if (!Array.isArray(this.tabs) || this.tabs.length === 0) {
+            return;
+        }
+
+        const snapshot = this.tabs.map(tab => ({
+            url: tab.url,
+            sleeping: !!tab.sleeping
+        }));
+        const activeIndex = this.tabs.findIndex(tab => tab.id === this.activeTabId);
+        const payload = {
+            version: 1,
+            tabs: snapshot,
+            activeIndex: activeIndex >= 0 ? activeIndex : 0,
+            timestamp: Date.now()
+        };
+
+        try {
+            localStorage.setItem(this.sessionKey, JSON.stringify(payload));
+        } catch (e) {
+            console.warn('[SESSION] Unable to save layout:', e);
+        }
+    }
+
+    clearStoredSession() {
+        localStorage.removeItem(this.sessionKey);
     }
 
     startMonitor() {
@@ -1247,6 +1410,7 @@ class Browser {
                 this.omnibox.value = newTab.url;
             }
             this.updateBookmarkButtonState();
+            this.saveSession();
         }
     }
 
@@ -1262,16 +1426,7 @@ class Browser {
         const tab = this.tabs[tabIndex];
 
         // [PERFORMANCE] Clean up intervals to prevent memory leaks
-        if (tab.__syncInterval) {
-            clearInterval(tab.__syncInterval);
-            tab.__syncInterval = null;
-            console.log('[PERFORMANCE] Cleared sync interval for tab', id);
-        }
-        if (tab.__overrideInterval) {
-            clearInterval(tab.__overrideInterval);
-            tab.__overrideInterval = null;
-            console.log('[PERFORMANCE] Cleared override interval for tab', id);
-        }
+        this.cleanupTabResources(tab);
 
         // Remove Elements
         tab.element.remove();
@@ -1288,6 +1443,7 @@ class Browser {
                 this.createTab();
             }
         }
+        this.saveSession();
     }
 
 
@@ -1588,6 +1744,7 @@ class Browser {
                 }
             }
         }
+        this.saveSession();
     }
 
     updateFavicon(tab, src) {

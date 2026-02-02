@@ -2,7 +2,7 @@
 .btn-primary,
 .btn-secondary,
 .full-width-btn {
-    padding: 8px 16px;
+    padding: 5px 16px;
     border-radius: var(--radius-md);
     font-size: 13px;
     font-weight: 500;
@@ -51,7 +51,7 @@ html[data-theme="cloud"] .btn-secondary:hover {
     background-color: var(--accent-color);
     color: var(--bg-color);
     border: none;
-    padding: 8px 14px;
+    padding: 5px 14px;
     border-radius: 14px;
     font-family: 'Segoe UI';
     font-size: 13px;

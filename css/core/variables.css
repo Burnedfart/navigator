@@ -60,7 +60,7 @@ html[data-theme="coffee"] {
 html[data-theme="nebula"] {
     --bg-color: #0b071a;
     --window-bg: linear-gradient(145deg, #160d33 0%, #1a1040 100%);
-    --tab-bar-bg: #090618;
+    --tab-bar-bg: #0d0922;
     --tab-active-bg: #160d33;
     --tab-hover-bg: #241452;
     --toolbar-bg: #160d33;

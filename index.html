@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/browser.css?v=2">
+    <link rel="stylesheet" href="css/browser.css?v=4">
 </head>
 
 <body>
@@ -424,6 +424,19 @@
                     on this network.</div>
             </div>
             <button class="warning-close" id="warning-close-btn" aria-label="Close warning">✕</button>
+        </div>
+
+        <!-- Session Restore Prompt -->
+        <div id="session-restore-banner" class="network-warning-banner hidden">
+            <div class="warning-icon">↺</div>
+            <div class="warning-content">
+                <div class="warning-title">Restore previous session?</div>
+                <div class="warning-message">Tabs, their order, and the last active page are stored locally.</div>
+                <div class="session-restore-actions">
+                    <button id="session-restore-btn" class="update-btn-themed">Restore tabs</button>
+                    <button id="session-discard-btn" class="btn-secondary">Start fresh</button>
+                </div>
+            </div>
         </div>
 
         <!-- Update Prompt Banner -->
