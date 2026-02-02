@@ -664,7 +664,7 @@ class Browser {
 
     initializePins() {
         // Version number - increment this whenever you update the default apps list
-        const PINS_VERSION = 4;
+        const PINS_VERSION = 5;
 
         const defaultApps = [
             { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
