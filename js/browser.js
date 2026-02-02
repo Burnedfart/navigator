@@ -2028,6 +2028,9 @@ class Browser {
     renderBookmarks() {
         if (!this.bookmarksBar) return;
 
+        // Toggle visibility: hide if no bookmarks
+        this.bookmarksBar.classList.toggle('hidden', this.bookmarks.length === 0);
+
         this.bookmarksBar.innerHTML = '';
         this.bookmarks.forEach(bookmark => {
             const el = document.createElement('div');
