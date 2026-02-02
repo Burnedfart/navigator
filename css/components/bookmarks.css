@@ -4,13 +4,13 @@
     gap: 12px;
     padding: 4px 16px;
     background: var(--window-bg);
-    border-bottom: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 28px;
     overflow: hidden;
     scrollbar-width: none;
     /* Hide scrollbar for clean look */
+    border-bottom: 1px solid var(--border-color);
 }
 
 .bookmarks-bar.hidden {
@@ -19,7 +19,6 @@
     padding-top: 0;
     padding-bottom: 0;
     opacity: 0;
-    border-bottom-color: transparent;
     pointer-events: none;
 }
 

@@ -13,10 +13,10 @@ class Browser {
         this.omnibox = document.getElementById('omnibox-input');
         this.newTabBtn = document.getElementById('new-tab-btn');
         this.proxyStatus = document.getElementById('proxy-status');
-        this.logo = document.querySelector('.logo-container img');
+        this.logo = document.querySelector('.logo-container .app-logo-img');
         this.bookmarkBtn = document.getElementById('bookmark-btn');
         this.bookmarksBar = document.getElementById('bookmarks-bar');
-        this.sessionBanner = document.getElementById('session-restore-banner');
+        this.sessionModal = document.getElementById('session-restore-modal');
         this.sessionRestoreBtn = document.getElementById('session-restore-btn');
         this.sessionDiscardBtn = document.getElementById('session-discard-btn');
 
@@ -479,15 +479,15 @@ class Browser {
     }
 
     showSessionPrompt() {
-        if (!this.sessionBanner || this.sessionPromptActive) return;
-        this.sessionBanner.classList.remove('hidden');
+        if (!this.sessionModal || this.sessionPromptActive) return;
+        this.sessionModal.classList.remove('hidden');
         if (this.newTabBtn) this.newTabBtn.disabled = true;
         this.sessionPromptActive = true;
     }
 
     hideSessionPrompt() {
-        if (!this.sessionBanner || !this.sessionPromptActive) return;
-        this.sessionBanner.classList.add('hidden');
+        if (!this.sessionModal || !this.sessionPromptActive) return;
+        this.sessionModal.classList.add('hidden');
         if (this.newTabBtn) this.newTabBtn.disabled = false;
         this.sessionPromptActive = false;
     }

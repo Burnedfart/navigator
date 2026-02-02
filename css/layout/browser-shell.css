@@ -7,6 +7,10 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+.nav-toolbar:has(+ .bookmarks-bar:not(.hidden)) {
+    border-bottom: none;
+}
+
 .nav-controls {
     display: flex;
     gap: 4px;

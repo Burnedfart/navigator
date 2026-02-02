@@ -68,7 +68,6 @@
 .tab.active {
     background-color: var(--tab-active-bg);
     color: var(--text-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1;
 }
 
@@ -103,10 +102,7 @@
     }
 }
 
-/* Theme-Specific Tab Styles */
-html[data-theme="ink"] .tab.active {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
+
 
 /* Tab Internal Elements */
 .tab-favicon {

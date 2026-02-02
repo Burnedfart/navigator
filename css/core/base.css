@@ -18,29 +18,33 @@ body {
 
 /* Logo & Branding */
 .logo-container {
-    padding: 0 12px;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+    margin-right: 4px;
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     cursor: default;
-    transition: color 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
 }
 
 .logo-container:hover {
     color: var(--text-primary);
+    background-color: var(--tab-hover-bg);
 }
 
 .app-logo-img,
 .home-logo-img {
-    width: 24px;
-    height: 24px;
     object-fit: contain;
-    filter: var(--logo-filter);
 }
 
 .home-logo-img {
     width: 80px;
     height: 80px;
+    filter: var(--logo-filter);
 }
 
 /* Animations */

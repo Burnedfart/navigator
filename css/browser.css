@@ -11,3 +11,18 @@
 @import url('components/bookmarks.css');
 @import url('utilities/performance.css');
 @import url('utilities/responsive.css');
+
+/* Dynamic Logo Coloring */
+.app-logo-img {
+    width: 24px;
+    height: 24px;
+    background-color: var(--text-primary);
+    -webkit-mask-image: url('../assets/logo.png');
+    mask-image: url('../assets/logo.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
