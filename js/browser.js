@@ -454,6 +454,11 @@ class Browser {
             return false;
         }
 
+        // Don't show the prompt if the only tab is the home page
+        if (session.tabs.length === 1 && session.tabs[0].url === 'browser://home') {
+            return false;
+        }
+
         this.pendingSessionData = session;
         this.showSessionPrompt();
         return true;
