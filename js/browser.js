@@ -247,6 +247,133 @@ class Browser {
         return div.innerHTML;
     }
 
+    configureIframePermissions(iframe) {
+        if (!iframe) return;
+
+        if (iframe.hasAttribute('sandbox')) {
+            iframe.removeAttribute('sandbox');
+        }
+        if (iframe.hasAttribute('credentialless')) {
+            iframe.removeAttribute('credentialless');
+        }
+
+        iframe.allow = "accelerometer autoplay camera clipboard-read clipboard-write display-capture encrypted-media fullscreen gamepad geolocation gyroscope microphone midi payment picture-in-picture publickey-credentials-get screen-wake-lock speaker-selection usb web-share xr-spatial-tracking";
+        iframe.setAttribute('allowfullscreen', 'true');
+        iframe.setAttribute('webkitallowfullscreen', 'true');
+        iframe.setAttribute('mozallowfullscreen', 'true');
+    }
+
+    guardIframeSandbox(tab) {
+        if (!tab || !tab.iframe) return;
+        this.configureIframePermissions(tab.iframe);
+
+        if (tab.__sandboxObserver) return;
+
+        const observer = new MutationObserver(() => {
+            if (!tab.iframe) return;
+            if (tab.iframe.hasAttribute('sandbox') || tab.iframe.hasAttribute('credentialless')) {
+                this.configureIframePermissions(tab.iframe);
+            }
+        });
+
+        observer.observe(tab.iframe, {
+            attributes: true,
+            attributeFilter: ['sandbox', 'credentialless', 'allow', 'allowfullscreen', 'webkitallowfullscreen', 'mozallowfullscreen']
+        });
+
+        tab.__sandboxObserver = observer;
+
+        tab.iframe.addEventListener('load', () => {
+            this.configureIframePermissions(tab.iframe);
+        });
+    }
+
+    installContentIframeGuards(tab) {
+        if (!tab || !tab.iframe) return;
+
+        let iframeWindow;
+        try {
+            iframeWindow = tab.iframe.contentWindow;
+        } catch (e) {
+            return;
+        }
+        if (!iframeWindow || iframeWindow.__sandboxGuardInstalled) return;
+
+        const removeSandboxAttrs = () => {
+            try {
+                const doc = iframeWindow.document;
+                if (!doc) return;
+                const frames = doc.querySelectorAll('iframe[sandbox], iframe[credentialless]');
+                frames.forEach(frame => {
+                    frame.removeAttribute('sandbox');
+                    frame.removeAttribute('credentialless');
+                });
+            } catch (e) {
+                // Cross-origin or early document access
+            }
+        };
+
+        removeSandboxAttrs();
+
+        try {
+            const observer = new iframeWindow.MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    if (mutation.type === 'attributes') {
+                        const el = mutation.target;
+                        if (el && el.tagName === 'IFRAME') {
+                            el.removeAttribute('sandbox');
+                            el.removeAttribute('credentialless');
+                        }
+                    } else if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach(node => {
+                            if (node && node.tagName === 'IFRAME') {
+                                node.removeAttribute('sandbox');
+                                node.removeAttribute('credentialless');
+                            }
+                            if (node && node.querySelectorAll) {
+                                node.querySelectorAll('iframe[sandbox], iframe[credentialless]').forEach(frame => {
+                                    frame.removeAttribute('sandbox');
+                                    frame.removeAttribute('credentialless');
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+
+            const doc = iframeWindow.document;
+            observer.observe(doc.documentElement || doc, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ['sandbox', 'credentialless']
+            });
+
+            tab.__contentSandboxObserver = observer;
+        } catch (e) {
+            // MutationObserver or document access failed
+        }
+
+        try {
+            const iframeProto = iframeWindow.HTMLIFrameElement && iframeWindow.HTMLIFrameElement.prototype;
+            if (iframeProto && !iframeProto.__sandboxGuarded) {
+                const originalSetAttribute = iframeProto.setAttribute;
+                iframeProto.setAttribute = function (name, value) {
+                    if (name && (name.toLowerCase() === 'sandbox' || name.toLowerCase() === 'credentialless')) {
+                        this.removeAttribute(name);
+                        return;
+                    }
+                    return originalSetAttribute.call(this, name, value);
+                };
+                iframeProto.__sandboxGuarded = true;
+            }
+        } catch (e) {
+            // Prototype patch failed
+        }
+
+        iframeWindow.__sandboxGuardInstalled = true;
+    }
+
     async init() {
         if (window.self !== window.top) {
             let isAllowedFrame = false;
@@ -434,6 +561,16 @@ class Browser {
                 console.log(`[PERFORMANCE] Cleared ${label} for tab`, tab.id);
             }
         });
+
+        if (tab.__sandboxObserver) {
+            tab.__sandboxObserver.disconnect();
+            tab.__sandboxObserver = null;
+        }
+
+        if (tab.__contentSandboxObserver) {
+            tab.__contentSandboxObserver.disconnect();
+            tab.__contentSandboxObserver = null;
+        }
     }
 
     saveSession() {
@@ -522,13 +659,13 @@ class Browser {
 
     initializePins() {
         // Version number - increment this whenever you update the default apps list
-        const PINS_VERSION = 2; // v1: initial 2 apps, v2: added YT/SpenFlix/GeForce NOW
+        const PINS_VERSION = 4;
 
         const defaultApps = [
             { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
             { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
             { name: 'YouTube (Unblocked)', url: 'https://yewtu.be', icon: 'YT' },
-            { name: 'SpenFlix (Movies)', url: 'https://watch.spencerdevs.xyz/', icon: 'SF' },
+            { name: 'SpenFlix (Movies)', url: 'https://spenflix.ru', icon: 'SF' },
             { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' }
         ];
 
@@ -1633,16 +1770,7 @@ class Browser {
                     tab.iframe.style.position = 'absolute';
 
                     // FIX: "Sandbox Detected" & Permission Issues
-                    // 1. Remove sandbox entirely (most permissive)
-                    tab.iframe.removeAttribute('sandbox');
-
-                    // 2. Use proper space-separated permissions list (semicolons are invalid)
-                    tab.iframe.allow = "accelermometer autoplay camera clipboard-read clipboard-write display-capture encrypted-media fullscreen gamepad geolocation gyroscope microphone midi payment picture-in-picture publickey-credentials-get screen-wake-lock speaker-selection usb web-share xr-spatial-tracking";
-
-                    // Legacy Fullscreen support
-                    tab.iframe.setAttribute('allowfullscreen', 'true');
-                    tab.iframe.setAttribute('webkitallowfullscreen', 'true');
-                    tab.iframe.setAttribute('mozallowfullscreen', 'true');
+                    this.guardIframeSandbox(tab);
 
                     this.viewportsContainer.appendChild(tab.iframe);
 
@@ -1651,6 +1779,8 @@ class Browser {
                         try {
                             const iframeWindow = tab.iframe.contentWindow;
                             if (!iframeWindow) return;
+
+                            this.installContentIframeGuards(tab);
 
                             // SYNC URL BAR (Periodic poll)
                             if (!tab.__locationPollStarted) {
@@ -1719,6 +1849,7 @@ class Browser {
                     // Attach overrides on load and periodically
                     tab.iframe.addEventListener('load', () => {
                         if (this.activeTabId === tab.id) this.setLoading(false);
+                        this.installContentIframeGuards(tab);
                         attachWindowOpenOverride();
                     });
                     // [PERFORMANCE] Store interval ID for cleanup
@@ -2002,11 +2133,7 @@ class Browser {
             style.width = style.height = "100%";
 
             // FIX: "Sandbox Detected" & Permission Issues in Cloak
-            iframe.removeAttribute('sandbox');
-            iframe.allow = "accelermometer autoplay camera clipboard-read clipboard-write display-capture encrypted-media fullscreen gamepad geolocation gyroscope microphone midi payment picture-in-picture publickey-credentials-get screen-wake-lock speaker-selection usb web-share xr-spatial-tracking";
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.setAttribute('webkitallowfullscreen', 'true');
-            iframe.setAttribute('mozallowfullscreen', 'true');
+            this.configureIframePermissions(iframe);
 
             const pLink = localStorage.getItem("pLink") || "https://google.com";
 

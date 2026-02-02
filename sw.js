@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v38';
-const CACHE_NAME = 'scramjet-proxy-cache-v38';
+const VERSION = 'v43';
+const CACHE_NAME = 'scramjet-proxy-cache-v43';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -78,7 +78,29 @@ function stripRestrictiveHeaders(headers) {
 
     newHeaders.delete('X-Content-Type-Options');
 
+    newHeaders.delete('Cross-Origin-Embedder-Policy');
+    newHeaders.delete('Cross-Origin-Opener-Policy');
+    newHeaders.delete('Cross-Origin-Resource-Policy');
+
     return newHeaders;
+}
+
+function applyRelaxedEmbeddingHeaders(headers) {
+    headers.set('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    headers.set('Cross-Origin-Opener-Policy', 'unsafe-none');
+    return headers;
+}
+
+function normalizeResponseHeaders(response, relaxEmbedding) {
+    let headers = stripRestrictiveHeaders(response.headers);
+    if (relaxEmbedding) {
+        headers = applyRelaxedEmbeddingHeaders(headers);
+    }
+    return new Response(response.body, {
+        status: response.status === 0 ? 200 : response.status,
+        statusText: response.statusText,
+        headers,
+    });
 }
 
 async function ensureConfigLoaded() {
@@ -135,21 +157,8 @@ async function handleRequest(event) {
             }
 
             const response = await scramjet.fetch(event);
-
-            let newHeaders = stripRestrictiveHeaders(response.headers);
-
-            if (isNavigationRequest) {
-                // All documents MUST have these headers to work in our isolated environment
-                // If we delete them for iframes, the browser might sandbox or block them.
-                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-            }
-
-            const modifiedResponse = new Response(response.body, {
-                status: response.status === 0 ? 200 : response.status,
-                statusText: response.statusText,
-                headers: newHeaders,
-            });
+            const relaxEmbedding = isNavigationRequest || isIframe;
+            const modifiedResponse = normalizeResponseHeaders(response, relaxEmbedding);
 
             // Cache static resources
             if (isStaticResource(url) && response.ok) {
@@ -175,34 +184,17 @@ async function handleRequest(event) {
             }
 
             const response = await fetch(event.request);
+            const modifiedResponse = normalizeResponseHeaders(response, false);
             if (response.ok) {
-                cache.put(event.request, response.clone());
+                cache.put(event.request, modifiedResponse.clone());
             }
-            return response;
+            return modifiedResponse;
         }
 
         const response = await fetch(event.request);
 
-        if (isNavigationRequest) {
-            const newHeaders = new Headers(response.headers);
-            // isIframe is defined above
-
-            if (isIframe) {
-                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-            } else {
-                newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-            }
-
-            return new Response(response.body, {
-                status: response.status === 0 ? 200 : response.status,
-                statusText: response.statusText,
-                headers: newHeaders,
-            });
-        }
-
-        return response;
+        const relaxEmbedding = isNavigationRequest || isIframe;
+        return normalizeResponseHeaders(response, relaxEmbedding);
     } catch (err) {
         console.error(`SW: ❌ Error handling ${url}:`, err);
         return new Response(

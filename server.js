@@ -46,8 +46,8 @@ app.use((req, res, next) => {
 
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+    res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
@@ -70,9 +70,9 @@ app.get('/api/health', (req, res) => {
 // Serve static files
 app.use(express.static(__dirname, {
     setHeaders: (res, path) => {
-        // [FIX] Enable Cross-Origin Isolation for libcurl transport
-        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+        // Keep relaxed embedding headers to avoid COEP/COOP mismatches in Firefox
+        res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+        res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
 
         if (path.endsWith('.js') || path.endsWith('.wasm') || path.endsWith('.mjs')) {
             res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
@@ -83,9 +83,9 @@ app.use(express.static(__dirname, {
 // Serve 'lib' directory for static assets
 app.use("/lib/", express.static(path.join(__dirname, "lib"), {
     setHeaders: (res) => {
-        // [FIX] Enable Cross-Origin Isolation for libcurl transport
-        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+        // Keep relaxed embedding headers to avoid COEP/COOP mismatches in Firefox
+        res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+        res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
         res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     }
 }));
