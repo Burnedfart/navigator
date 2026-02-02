@@ -1,0 +1,90 @@
+.bookmarks-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px;
+    background: var(--window-bg);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-height: 40px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Hide scrollbar for clean look */
+}
+
+.bookmarks-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.bookmark-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.bookmark-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-color);
+    transform: translateY(-1px);
+}
+
+.bookmark-item:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.bookmark-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.8;
+}
+
+#bookmark-btn.active {
+    color: var(--accent-color);
+}
+
+#bookmark-btn svg {
+    transition: transform 0.2s ease;
+}
+
+#bookmark-btn:hover svg {
+    transform: scale(1.1);
+}
+
+#bookmark-btn:active svg {
+    transform: scale(0.95);
+}
+
+/* Context menu or removal button styling if needed */
+.bookmark-item .remove-btn {
+    opacity: 0;
+    margin-left: 4px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: opacity 0.2s ease;
+}
+
+.bookmark-item:hover .remove-btn {
+    opacity: 0.5;
+}
+
+.bookmark-item .remove-btn:hover {
+    opacity: 1;
+    background: var(--danger-color);
+    color: white;
+}

@@ -15,6 +15,8 @@ class Browser {
         this.newTabBtn = document.getElementById('new-tab-btn');
         this.proxyStatus = document.getElementById('proxy-status');
         this.logo = document.querySelector('.logo-container img');
+        this.bookmarkBtn = document.getElementById('bookmark-btn');
+        this.bookmarksBar = document.getElementById('bookmarks-bar');
 
         // Modal Elements
         this.modal = document.getElementById('custom-app-modal');
@@ -267,6 +269,7 @@ class Browser {
         this.loadTheme();
         this.loadDisguise();
         this.loadPerformanceSettings();
+        this.loadBookmarks();
         this.updateProxyStatus('loading');
         if (localStorage.getItem('ab') === 'true') {
             this.openCloaked();
@@ -417,6 +420,10 @@ class Browser {
         });
 
         this.newTabBtn.addEventListener('click', () => this.createTab());
+
+        if (this.bookmarkBtn) {
+            this.bookmarkBtn.addEventListener('click', () => this.handleBookmarkClick());
+        }
 
         this.omnibox.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -1239,6 +1246,7 @@ class Browser {
                 if (newTab.iframe) newTab.iframe.classList.add('active');
                 this.omnibox.value = newTab.url;
             }
+            this.updateBookmarkButtonState();
         }
     }
 
@@ -1442,6 +1450,7 @@ class Browser {
         tab.url = url;
 
         // UI Updates
+        this.updateBookmarkButtonState();
         tab.title = new URL(url).hostname || 'Browse';
         tab.element.querySelector('.tab-title').textContent = tab.title;
         // Reset Favicon
@@ -1657,6 +1666,7 @@ class Browser {
                     console.log('[BROWSER] 🔄 Syncing UI to iframe location:', realUrl);
                     tab.url = realUrl;
                     this.omnibox.value = realUrl;
+                    this.updateBookmarkButtonState();
 
                     // Update tab title
                     try {
@@ -1964,6 +1974,110 @@ class Browser {
             e.preventDefault();
             console.log('[PANIC] 🚨 Panic button triggered! Redirect to:', panicUrl);
             window.top.location.replace(panicUrl);
+        }
+    }
+
+    // Bookmarks logic
+    loadBookmarks() {
+        try {
+            this.bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+            this.renderBookmarks();
+        } catch (e) {
+            console.error('[BROWSER] Failed to load bookmarks:', e);
+            this.bookmarks = [];
+        }
+    }
+
+    handleBookmarkClick() {
+        const tab = this.getActiveTab();
+        if (!tab) return;
+
+        if (tab.url === 'browser://home') {
+            this.showError('You must be on a site to bookmark.');
+            return;
+        }
+
+        const isBookmarked = this.bookmarks.some(b => b.url === tab.url);
+        if (isBookmarked) {
+            this.removeBookmark(tab.url);
+        } else {
+            this.addBookmark(tab.url, tab.title);
+        }
+    }
+
+    addBookmark(url, title) {
+        if (this.bookmarks.some(b => b.url === url)) return;
+
+        this.bookmarks.push({ url, title });
+        this.saveBookmarks();
+        this.renderBookmarks();
+        this.updateBookmarkButtonState();
+    }
+
+    removeBookmark(url) {
+        this.bookmarks = this.bookmarks.filter(b => b.url !== url);
+        this.saveBookmarks();
+        this.renderBookmarks();
+        this.updateBookmarkButtonState();
+    }
+
+    saveBookmarks() {
+        localStorage.setItem('bookmarks', JSON.stringify(this.bookmarks));
+    }
+
+    renderBookmarks() {
+        if (!this.bookmarksBar) return;
+
+        this.bookmarksBar.innerHTML = '';
+        this.bookmarks.forEach(bookmark => {
+            const el = document.createElement('div');
+            el.className = 'bookmark-item';
+
+            let hostname = '';
+            try {
+                hostname = new URL(bookmark.url).hostname;
+            } catch (e) {
+                hostname = bookmark.url;
+            }
+
+            el.innerHTML = `
+                <img src="https://www.google.com/s2/favicons?domain=${hostname}" class="bookmark-icon" onerror="this.src='assets/logo.png'">
+                <span class="bookmark-title">${this.sanitizeHTML(bookmark.title)}</span>
+                <div class="remove-btn" title="Remove Bookmark">✕</div>
+            `;
+
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('.remove-btn')) {
+                    e.stopPropagation();
+                    this.removeBookmark(bookmark.url);
+                } else {
+                    this.navigate(bookmark.url);
+                }
+            });
+
+            this.bookmarksBar.appendChild(el);
+        });
+    }
+
+    updateBookmarkButtonState() {
+        if (!this.bookmarkBtn) return;
+        const tab = this.getActiveTab();
+        if (!tab || tab.url === 'browser://home') {
+            this.bookmarkBtn.classList.remove('active');
+            const svg = this.bookmarkBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', 'none');
+            return;
+        }
+
+        const isBookmarked = this.bookmarks.some(b => b.url === tab.url);
+        if (isBookmarked) {
+            this.bookmarkBtn.classList.add('active');
+            const svg = this.bookmarkBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', 'currentColor');
+        } else {
+            this.bookmarkBtn.classList.remove('active');
+            const svg = this.bookmarkBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', 'none');
         }
     }
 }

@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v34';
-const CACHE_NAME = 'scramjet-proxy-cache-v33';
+const VERSION = 'v35';
+const CACHE_NAME = 'scramjet-proxy-cache-v35';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);

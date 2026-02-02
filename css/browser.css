@@ -8,5 +8,6 @@
 @import url('components/settings.css');
 @import url('components/home.css');
 @import url('components/notifications.css');
+@import url('components/bookmarks.css');
 @import url('utilities/performance.css');
 @import url('utilities/responsive.css');
