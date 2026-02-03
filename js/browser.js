@@ -1883,45 +1883,45 @@ class Browser {
         this.saveSession();
     }
 
+    getFaviconUrl(url) {
+        if (!url || url === 'browser://home') return '';
+        try {
+            const hostname = new URL(url).hostname;
+            if (hostname) {
+                return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+            }
+        } catch (e) {
+            if (url.includes('.') && !url.includes(' ')) {
+                return `https://www.google.com/s2/favicons?domain=${url}&sz=32`;
+            }
+        }
+        return '';
+    }
+
     updateFavicon(tab, src) {
         tab.favicon = src;
         const iconEl = tab.element.querySelector('.tab-favicon');
+        if (!iconEl) return;
 
         const fallback = 'assets/logo.png';
+        iconEl.style.display = 'block';
 
-        if (src) {
+        if (src && src !== '') {
             iconEl.src = src;
-            iconEl.style.display = 'block';
             iconEl.classList.remove('use-filter');
-
             iconEl.onerror = () => {
                 iconEl.src = fallback;
                 iconEl.classList.add('use-filter');
             };
         } else {
             iconEl.src = fallback;
-            iconEl.style.display = 'block';
             iconEl.classList.add('use-filter');
         }
     }
 
     async fetchFavicon(tab, url) {
-        if (!url || url === 'browser://home') {
-            this.updateFavicon(tab, '');
-            return;
-        }
-
-        try {
-            const hostname = new URL(url).hostname;
-            if (hostname) {
-                const faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-                this.updateFavicon(tab, faviconUrl);
-            } else {
-                this.updateFavicon(tab, '');
-            }
-        } catch (e) {
-            this.updateFavicon(tab, '');
-        }
+        const faviconUrl = this.getFaviconUrl(url);
+        this.updateFavicon(tab, faviconUrl);
     }
 
     syncTabWithIframe(tab) {
@@ -2309,15 +2309,11 @@ class Browser {
             const el = document.createElement('div');
             el.className = 'bookmark-item';
 
-            let hostname = '';
-            try {
-                hostname = new URL(bookmark.url).hostname;
-            } catch (e) {
-                hostname = bookmark.url;
-            }
+            const faviconUrl = this.getFaviconUrl(bookmark.url);
+            const fallback = 'assets/logo.png';
 
             el.innerHTML = `
-                <img src="https://www.google.com/s2/favicons?domain=${hostname}" class="bookmark-icon" onerror="this.src='assets/logo.png'">
+                <img src="${faviconUrl || fallback}" class="bookmark-icon ${!faviconUrl ? 'use-filter' : ''}" onerror="this.src='${fallback}';this.classList.add('use-filter')">
                 <span class="bookmark-title">${this.sanitizeHTML(bookmark.title)}</span>
                 <div class="remove-btn" title="Remove Bookmark">✕</div>
             `;
