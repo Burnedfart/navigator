@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v43';
-const CACHE_NAME = 'scramjet-proxy-cache-v43';
+const VERSION = 'v44';
+const CACHE_NAME = 'scramjet-proxy-cache-v44';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -53,14 +53,14 @@ if (!scramjetBundle) {
 
 
 const STATIC_CACHE_PATTERNS = [
-    /\.css$/,
-    /\.js$/,
-    /\.woff2?$/,
-    /\.png$/,
-    /\.jpg$/,
-    /\.svg$/,
-    /\.ico$/,
-    /\.wasm$/,
+    /\.css($|\?)/,
+    /\.js($|\?)/,
+    /\.woff2?($|\?)/,
+    /\.png($|\?)/,
+    /\.jpg($|\?)/,
+    /\.svg($|\?)/,
+    /\.ico($|\?)/,
+    /\.wasm($|\?)/,
 ];
 
 function isStaticResource(url) {
@@ -96,6 +96,11 @@ function normalizeResponseHeaders(response, relaxEmbedding) {
     if (relaxEmbedding) {
         headers = applyRelaxedEmbeddingHeaders(headers);
     }
+
+    // CRITICAL: Alway add Cross-Origin-Resource-Policy for COEP compatibility
+    // This fixed fonts and other cross-origin assets being blocked
+    headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+
     return new Response(response.body, {
         status: response.status === 0 ? 200 : response.status,
         statusText: response.statusText,
