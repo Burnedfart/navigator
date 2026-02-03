@@ -73,3 +73,21 @@ html[data-theme="nebula"] {
     --window-bg-solid: #160d33;
     --logo-filter: brightness(0) saturate(100%) invert(93%) sepia(16%) saturate(301%) hue-rotate(213deg) brightness(101%) contrast(96%);
 }
+
+/* FIRE THEME - Red/Orange Dark */
+html[data-theme="fire"] {
+    --bg-color: #1a1c1d;
+    --window-bg: #393e41;
+    --tab-bar-bg: #242729;
+    --tab-active-bg: #393e41;
+    --tab-hover-bg: #44494c;
+    --toolbar-bg: #393e41;
+    --text-primary: #f6f7eb;
+    --text-secondary: #e94f37;
+    --border-color: #4d5154;
+    --omnibox-bg: #242729;
+    --omnibox-focus-bg: #1a1c1d;
+    --accent-color: #e94f37;
+    --window-bg-solid: #393e41;
+    --logo-filter: brightness(0) saturate(100%) invert(98%) sepia(1%) saturate(1512%) hue-rotate(182deg) brightness(97%) contrast(91%);
+}
