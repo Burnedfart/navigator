@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v44';
-const CACHE_NAME = 'scramjet-proxy-cache-v44';
+const VERSION = 'v45';
+const CACHE_NAME = 'scramjet-proxy-cache-v45';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -189,6 +189,10 @@ async function handleRequest(event) {
             }
 
             const response = await fetch(event.request);
+
+            // If the response is opaque (cross-origin image/script), we can't normalize headers
+            if (response.type === 'opaque') return response;
+
             const modifiedResponse = normalizeResponseHeaders(response, false);
             if (response.ok) {
                 cache.put(event.request, modifiedResponse.clone());
@@ -197,6 +201,10 @@ async function handleRequest(event) {
         }
 
         const response = await fetch(event.request);
+
+        // If the response is opaque (cross-origin image/script), we can't normalize headers
+        // This is critical for favicons from google.com which are cross-origin no-cors
+        if (response.type === 'opaque') return response;
 
         const relaxEmbedding = isNavigationRequest || isIframe;
         return normalizeResponseHeaders(response, relaxEmbedding);

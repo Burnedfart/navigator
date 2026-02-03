@@ -67,10 +67,6 @@
     transition: transform 0.2s ease;
 }
 
-#bookmark-btn:hover svg {
-    transform: scale(1.1);
-}
-
 #bookmark-btn:active svg {
     transform: scale(0.95);
 }
