@@ -921,42 +921,42 @@ class Browser {
             warningClose.addEventListener('click', () => {
                 document.getElementById('network-warning-banner').classList.add('hidden');
             });
-            // Theme Editor Events
-            if (this.btnOpenThemeEditor) {
-                this.btnOpenThemeEditor.addEventListener('click', () => this.openThemeEditor());
-            }
-            if (this.btnCloseThemeEditor) {
-                this.btnCloseThemeEditor.addEventListener('click', () => this.closeThemeEditor());
-            }
-            if (this.themeEditorModal) {
-                this.themeEditorModal.addEventListener('click', (e) => {
-                    if (e.target === this.themeEditorModal) this.closeThemeEditor();
-                });
-            }
-            if (this.btnSaveTheme) {
-                this.btnSaveTheme.addEventListener('click', () => this.saveCustomTheme());
-            }
-            if (this.btnResetTheme) {
-                this.btnResetTheme.addEventListener('click', () => this.resetThemeEditor());
-            }
+        }
 
-            this.colorInputs.forEach(input => {
-                input.addEventListener('input', (e) => {
-                    const varName = e.target.getAttribute('data-var');
-                    const color = e.target.value;
-                    document.documentElement.style.setProperty(varName, color);
-
-                    // If updating primary text, we should ideally update the logo filter
-                    // For custom themes, we'll default to a simple light/dark filter logic
-                    if (varName === '--text-primary') {
-                        this.updateLogoFilterForColor(color);
-                    }
-                    if (varName === '--window-bg') {
-                        document.documentElement.style.setProperty('--window-bg-solid', color);
-                    }
-                });
+        // Theme Editor Events
+        if (this.btnOpenThemeEditor) {
+            this.btnOpenThemeEditor.addEventListener('click', () => this.openThemeEditor());
+        }
+        if (this.btnCloseThemeEditor) {
+            this.btnCloseThemeEditor.addEventListener('click', () => this.closeThemeEditor());
+        }
+        if (this.themeEditorModal) {
+            this.themeEditorModal.addEventListener('click', (e) => {
+                if (e.target === this.themeEditorModal) this.closeThemeEditor();
             });
         }
+        if (this.btnSaveTheme) {
+            this.btnSaveTheme.addEventListener('click', () => this.saveCustomTheme());
+        }
+        if (this.btnResetTheme) {
+            this.btnResetTheme.addEventListener('click', () => this.resetThemeEditor());
+        }
+
+        this.colorInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const varName = e.target.getAttribute('data-var');
+                const color = e.target.value;
+                document.documentElement.style.setProperty(varName, color);
+
+                // If updating primary text, we should ideally update the logo filter
+                if (varName === '--text-primary') {
+                    this.updateLogoFilterForColor(color);
+                }
+                if (varName === '--window-bg') {
+                    document.documentElement.style.setProperty('--window-bg-solid', color);
+                }
+            });
+        });
     }
 
     // Settings & Themes

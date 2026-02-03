@@ -319,8 +319,12 @@ input[type="range"]::-moz-range-thumb {
     background: #160d33;
 }
 
-.theme-preview.fire {
-    background: #e94f37;
+.theme-preview.raspberry {
+    background: #f44c7f;
+}
+
+.theme-preview.mint {
+    background: #59f9b1;
 }
 
 

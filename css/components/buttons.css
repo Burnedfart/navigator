@@ -46,32 +46,7 @@ html[data-theme="cloud"] .btn-secondary:hover {
     border: 0.5px solid var(--accent-color);
 }
 
-/* Update Button (Themed) */
-.update-btn-themed {
-    background-color: var(--accent-color);
-    color: var(--bg-color);
-    border: none;
-    padding: 5px 14px;
-    border-radius: 14px;
-    font-family: 'Segoe UI';
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-left: 8px;
-    white-space: nowrap;
-    letter-spacing: 0.05em;
-}
 
-.update-btn-themed:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.update-btn-themed:active {
-    transform: translateY(0);
-}
 
 /* Modal Action Buttons */
 .modal-actions {
@@ -164,4 +139,17 @@ html[data-theme="cloud"] .btn-secondary:hover {
     transition: background 0.2s;
     background-color: transparent;
     color: var(--text-secondary);
+}
+
+/* Custom Theme Editor Button - Disable Hover Flash */
+#btn-open-theme-editor {
+    transition: none !important;
+}
+
+#btn-open-theme-editor:hover {
+    background-color: var(--accent-color) !important;
+    color: var(--bg-color) !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
 }

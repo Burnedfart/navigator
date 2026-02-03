@@ -1,12 +1,12 @@
 .bookmarks-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 4px 16px;
+    gap: 4px;
+    padding: 6px 16px;
     background: var(--window-bg);
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 28px;
+    min-height: 32px;
     overflow: hidden;
     scrollbar-width: none;
     /* Hide scrollbar for clean look */
@@ -30,7 +30,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     color: var(--text-primary);
     text-decoration: none;
@@ -39,17 +39,27 @@
     transition: all 0.2s ease;
     white-space: nowrap;
     cursor: pointer;
-    border: 1px solid transparent;
+    position: relative;
+    border: none;
 }
 
 .bookmark-item:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: var(--border-color);
-    transform: translateY(-1px);
+}
+
+/* Bookmark Separator */
+.bookmark-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -2.5px;
+    top: 25%;
+    bottom: 25%;
+    width: 1px;
+    background-color: var(--border-color);
+    opacity: 0.8;
 }
 
 .bookmark-item:active {
-    transform: translateY(0);
     background: rgba(255, 255, 255, 0.12);
 }
 

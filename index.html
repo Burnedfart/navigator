@@ -137,14 +137,18 @@
                                         <div class="theme-preview nebula"></div>
                                         <span>Nebula</span>
                                     </button>
-                                    <button class="theme-btn" data-theme="fire" title="Fire">
-                                        <div class="theme-preview fire"></div>
-                                        <span>Fire</span>
+                                    <button class="theme-btn" data-theme="raspberry" title="Raspberry">
+                                        <div class="theme-preview raspberry"></div>
+                                        <span>Raspberry</span>
+                                    </button>
+                                    <button class="theme-btn" data-theme="mint" title="Mint">
+                                        <div class="theme-preview mint"></div>
+                                        <span>Mint</span>
                                     </button>
                                 </div>
                             </div>
                             <div class="settings-group">
-                                <button id="btn-open-theme-editor" class="btn-secondary full-width-btn">
+                                <button id="btn-open-theme-editor" class="full-width-btn">
                                     Create Custom Theme
                                 </button>
                             </div>
@@ -446,17 +450,20 @@
             </div>
         </div>
 
-        <!-- Update Prompt Banner -->
-        <div id="update-banner" class="network-warning-banner hidden">
-            <div class="warning-icon">
-                <img src="assets/rocket.png" alt="Update" class="rocket-icon-img">
+        <!-- Update Available Modal -->
+        <div id="update-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Update Available!</h3>
+                </div>
+                <div class="error-modal-body">
+                    <p>A new version of Navigator is available. Refresh to apply the update.</p>
+                </div>
+                <div class="modal-actions">
+                    <button id="update-close-btn" class="btn-secondary">Later</button>
+                    <button id="update-btn" class="btn-primary">Refresh Now</button>
+                </div>
             </div>
-            <div class="warning-content">
-                <div class="warning-title">Update Available!</div>
-                <div class="warning-message">A new version of the proxy is available.</div>
-            </div>
-            <button class="update-btn-themed" id="update-btn">Refresh</button>
-            <button class="warning-close" id="update-close-btn" aria-label="Close update">✕</button>
         </div>
 
         <!-- Viewports Container -->

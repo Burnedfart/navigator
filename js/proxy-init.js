@@ -68,18 +68,18 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // Handle Service Worker Updates
         const showUpdatePrompt = (waitingWorker) => {
-            const banner = document.getElementById('update-banner');
+            const modal = document.getElementById('update-modal');
             const updateBtn = document.getElementById('update-btn');
             const closeBtn = document.getElementById('update-close-btn');
 
-            if (banner && updateBtn) {
-                banner.classList.remove('hidden');
+            if (modal && updateBtn) {
+                modal.classList.remove('hidden');
                 updateBtn.onclick = () => {
                     waitingWorker.postMessage('skipWaiting');
-                    banner.classList.add('hidden');
+                    modal.classList.add('hidden');
                 };
                 if (closeBtn) {
-                    closeBtn.onclick = () => banner.classList.add('hidden');
+                    closeBtn.onclick = () => modal.classList.add('hidden');
                 }
             }
         };

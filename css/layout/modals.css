@@ -82,6 +82,14 @@ html[data-theme="coffee"] .modal-content {
     background: #4e3629;
 }
 
+html[data-theme="raspberry"] .modal-content {
+    background: #333a45;
+}
+
+html[data-theme="mint"] .modal-content {
+    background: #2d333b;
+}
+
 html[data-theme="custom"] .modal-content {
     background: var(--window-bg);
 }
@@ -192,6 +200,14 @@ html[data-theme="custom"] .modal-content {
     line-height: 1.2;
     letter-spacing: -0.5px;
     padding-left: 14px;
+}
+
+html[data-theme="raspberry"] .brand-name {
+    color: #f44c7f !important;
+}
+
+html[data-theme="mint"] .brand-name {
+    color: #59f9b1 !important;
 }
 
 .brand-tier {

@@ -74,20 +74,38 @@ html[data-theme="nebula"] {
     --logo-filter: brightness(0) saturate(100%) invert(93%) sepia(16%) saturate(301%) hue-rotate(213deg) brightness(101%) contrast(96%);
 }
 
-/* FIRE THEME - Red/Orange Dark */
-html[data-theme="fire"] {
-    --bg-color: #1a1c1d;
-    --window-bg: #393e41;
-    --tab-bar-bg: #242729;
-    --tab-active-bg: #393e41;
-    --tab-hover-bg: #44494c;
-    --toolbar-bg: #393e41;
-    --text-primary: #f6f7eb;
-    --text-secondary: #e94f37;
-    --border-color: #4d5154;
-    --omnibox-bg: #242729;
-    --omnibox-focus-bg: #1a1c1d;
-    --accent-color: #e94f37;
-    --window-bg-solid: #393e41;
-    --logo-filter: brightness(0) saturate(100%) invert(98%) sepia(1%) saturate(1512%) hue-rotate(182deg) brightness(97%) contrast(91%);
+/* RASPBERRY THEME - Dark Bluish Gray & Pink */
+html[data-theme="raspberry"] {
+    --bg-color: #2d333b;
+    --window-bg: #333a45;
+    --tab-bar-bg: #2d333b;
+    --tab-active-bg: #333a45;
+    --tab-hover-bg: #3e4451;
+    --toolbar-bg: #333a45;
+    --text-primary: #f44c7f;
+    --text-secondary: #939eae;
+    --border-color: #444b56;
+    --omnibox-bg: #2d333b;
+    --omnibox-focus-bg: #23282e;
+    --accent-color: #f44c7f;
+    --window-bg-solid: #333a45;
+    --logo-filter: invert(53%) sepia(90%) saturate(1318%) hue-rotate(305deg) brightness(101%) contrast(93%);
+}
+
+/* MINT THEME - Dark Bluish Gray & Mint */
+html[data-theme="mint"] {
+    --bg-color: #24292e;
+    --window-bg: #2d333b;
+    --tab-bar-bg: #24292e;
+    --tab-active-bg: #2d333b;
+    --tab-hover-bg: #333a45;
+    --toolbar-bg: #2d333b;
+    --text-primary: #59f9b1;
+    --text-secondary: #939eae;
+    --border-color: #444b56;
+    --omnibox-bg: #24292e;
+    --omnibox-focus-bg: #1c2125;
+    --accent-color: #59f9b1;
+    --window-bg-solid: #2d333b;
+    --logo-filter: invert(82%) sepia(21%) saturate(1001%) hue-rotate(93deg) brightness(103%) contrast(101%);
 }

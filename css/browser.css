@@ -25,4 +25,12 @@
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+    display: block;
+    will-change: transform;
+    transform-origin: center;
+}
+
+/* Ensure the logo can spin even if general animations are disabled for performance */
+.app-logo-img.spin {
+    animation: spin 1s cubic-bezier(0.6, 0.05, 0.4, 1.0) infinite !important;
 }
