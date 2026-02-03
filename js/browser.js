@@ -1751,8 +1751,8 @@ class Browser {
         this.updateBookmarkButtonState();
         tab.title = new URL(url).hostname || 'Browse';
         tab.element.querySelector('.tab-title').textContent = tab.title;
-        // Reset Favicon
-        this.updateFavicon(tab, '');
+        // Update Favicon
+        this.fetchFavicon(tab, url);
 
         this.omnibox.value = url;
 
@@ -1886,57 +1886,40 @@ class Browser {
     updateFavicon(tab, src) {
         tab.favicon = src;
         const iconEl = tab.element.querySelector('.tab-favicon');
+
+        const fallback = 'assets/logo.png';
+
         if (src) {
             iconEl.src = src;
             iconEl.style.display = 'block';
+            iconEl.classList.remove('use-filter');
 
-            // If fallback for load error
             iconEl.onerror = () => {
-                iconEl.style.display = 'none'; // Fallback to blank
+                iconEl.src = fallback;
+                iconEl.classList.add('use-filter');
             };
         } else {
-            iconEl.style.display = 'none'; // Blank circle is default via CSS effectively or just hidden image
+            iconEl.src = fallback;
+            iconEl.style.display = 'block';
+            iconEl.classList.add('use-filter');
         }
     }
 
     async fetchFavicon(tab, url) {
+        if (!url || url === 'browser://home') {
+            this.updateFavicon(tab, '');
+            return;
+        }
+
         try {
-            // [SECURITY] Validate the page URL protocol first
-            const pageUrl = new URL(url);
-            if (!['http:', 'https:'].includes(pageUrl.protocol)) {
-                console.warn('[SECURITY] Invalid page protocol for favicon fetch:', pageUrl.protocol);
-                this.updateFavicon(tab, '');
-                return;
-            }
-
-            const response = await fetch(url);
-            const text = await response.text();
-
-            // [SECURITY] Use DOMParser instead of regex to prevent XSS
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
-
-            // Look for favicon link elements
-            const iconLink = doc.querySelector('link[rel~="icon"]') ||
-                doc.querySelector('link[rel~="shortcut icon"]');
-
-            if (iconLink && iconLink.href) {
-                // Resolve relative URLs
-                let faviconUrl = new URL(iconLink.href, url).href;
-
-                // [SECURITY] Validate favicon URL protocol
-                const faviconUrlObj = new URL(faviconUrl);
-                if (['http:', 'https:', 'data:'].includes(faviconUrlObj.protocol)) {
-                    this.updateFavicon(tab, faviconUrl);
-                } else {
-                    console.warn('[SECURITY] Blocked non-HTTP favicon protocol:', faviconUrlObj.protocol);
-                    this.updateFavicon(tab, '');
-                }
+            const hostname = new URL(url).hostname;
+            if (hostname) {
+                const faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+                this.updateFavicon(tab, faviconUrl);
             } else {
                 this.updateFavicon(tab, '');
             }
         } catch (e) {
-            console.warn('[FAVICON] Fetch failed:', e);
             this.updateFavicon(tab, '');
         }
     }
@@ -1960,6 +1943,7 @@ class Browser {
                     tab.url = realUrl;
                     this.omnibox.value = realUrl;
                     this.updateBookmarkButtonState();
+                    this.fetchFavicon(tab, realUrl);
 
                     // Update tab title
                     try {
