@@ -413,108 +413,125 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             await window.bareMuxConnection.setTransport(transportPath, [{ websocket: wispUrl }]);
             console.log('✅ [PROXY] BareMux transport connected');
 
-            // 8. Connection Keep-Alive & Recovery System
             // Store transport config for recovery
             window.ProxyService.transportConfig = {
                 transportPath,
                 wispUrl,
                 bareMuxWorkerPath
             };
+        } else {
+            console.log('⚠️ [PROXY] Skipping BareMux (requires cross-origin isolation)');
+            console.log('ℹ️ [PROXY] Using Scramjet direct WISP transport only');
 
-            // Keep-alive ping interval (every 25 seconds) - also re-sends init signal to keep SW alive
-            let keepAliveInterval = setInterval(async () => {
-                try {
-                    // Re-send init signal to keep SW initialized (it may have been terminated)
-                    await window.ProxyService.sendInitSignal();
-                    console.log('💓 [PROXY] Keep-alive ping (SW re-initialized)');
-                } catch (e) {
-                    console.warn('⚠️ [PROXY] Keep-alive ping failed:', e);
-                }
-            }, 25000);
+            // Still store wispUrl for recovery system
+            window.ProxyService.transportConfig = {
+                wispUrl
+            };
+        }
 
-            // Visibility-based recovery - when user returns to tab after being away
-            let lastVisibilityChange = Date.now();
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
-                    const timeSinceHidden = Date.now() - lastVisibilityChange;
-                    console.log(`👀 [PROXY] Tab became visible (was hidden for ${Math.round(timeSinceHidden / 1000)}s)`);
+        // 8. Connection Keep-Alive & Recovery System (ALWAYS RUN)
+        // This ensures the Service Worker stays alive and initialized even when not using BareMux
 
-                    // CRITICAL: Always re-send init signal when tab becomes visible
-                    // The SW may have been terminated by the browser during idle
-                    console.log('🔄 [PROXY] Re-initializing Service Worker after visibility change...');
-                    await window.ProxyService.sendInitSignal();
+        // Keep-alive ping interval (every 25 seconds) - also re-sends init signal to keep SW alive
+        let keepAliveInterval = setInterval(async () => {
+            try {
+                // Re-send init signal to keep SW initialized (it may have been terminated)
+                await window.ProxyService.sendInitSignal();
+                console.log('💓 [PROXY] Keep-alive ping (SW re-initialized)');
+            } catch (e) {
+                console.warn('⚠️ [PROXY] Keep-alive ping failed:', e);
+            }
+        }, 25000);
 
-                    // If tab was hidden for more than 30 seconds, also verify WebSocket connection
-                    if (timeSinceHidden > 30000) {
-                        console.log('🔄 [PROXY] Long idle detected, verifying connection...');
-                        try {
-                            await window.ProxyService.verifyAndRecoverConnection();
-                        } catch (e) {
-                            console.error('❌ [PROXY] Recovery failed:', e);
-                        }
+        // Visibility-based recovery - when user returns to tab after being away
+        let lastVisibilityChange = Date.now();
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                const timeSinceHidden = Date.now() - lastVisibilityChange;
+                console.log(`👀 [PROXY] Tab became visible (was hidden for ${Math.round(timeSinceHidden / 1000)}s)`);
+
+                // CRITICAL: Always re-send init signal when tab becomes visible
+                // The SW may have been terminated by the browser during idle
+                console.log('🔄 [PROXY] Re-initializing Service Worker after visibility change...');
+                await window.ProxyService.sendInitSignal();
+
+                // If tab was hidden for more than 30 seconds, also verify WebSocket connection
+                if (timeSinceHidden > 30000) {
+                    console.log('🔄 [PROXY] Long idle detected, verifying connection...');
+                    try {
+                        await window.ProxyService.verifyAndRecoverConnection();
+                    } catch (e) {
+                        console.error('❌ [PROXY] Recovery failed:', e);
                     }
-                } else {
-                    lastVisibilityChange = Date.now();
                 }
+            } else {
+                lastVisibilityChange = Date.now();
+            }
+        });
+
+        // Connection verification and recovery function
+        window.ProxyService.verifyAndRecoverConnection = async function () {
+            const config = window.ProxyService.transportConfig;
+            if (!config || !config.wispUrl) {
+                console.warn('⚠️ [PROXY] No transport config available for recovery');
+                return false;
+            }
+
+            console.log('🔍 [PROXY] Testing WebSocket connection...');
+
+            // Quick WebSocket connectivity test
+            const testPromise = new Promise((resolve) => {
+                const ws = new WebSocket(config.wispUrl);
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resolve(false);
+                }, 5000);
+
+                ws.onopen = () => {
+                    clearTimeout(timeout);
+                    ws.close();
+                    resolve(true);
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+
+                ws.onclose = (e) => {
+                    // If closed before we resolved, it's a failure (unless we closed it ourselves)
+                    if (e.code !== 1000) {
+                        clearTimeout(timeout);
+                        resolve(false);
+                    }
+                };
             });
 
-            // Connection verification and recovery function
-            window.ProxyService.verifyAndRecoverConnection = async function () {
-                const config = window.ProxyService.transportConfig;
-                if (!config || !window.bareMuxConnection) {
-                    console.warn('⚠️ [PROXY] No transport config available for recovery');
-                    return false;
-                }
+            const isConnected = await testPromise;
 
-                console.log('🔍 [PROXY] Testing WebSocket connection...');
+            if (isConnected) {
+                console.log('✅ [PROXY] WebSocket is reachable');
 
-                // Quick WebSocket connectivity test
-                const testPromise = new Promise((resolve) => {
-                    const ws = new WebSocket(config.wispUrl);
-                    const timeout = setTimeout(() => {
-                        ws.close();
-                        resolve(false);
-                    }, 5000);
-
-                    ws.onopen = () => {
-                        clearTimeout(timeout);
-                        ws.close();
-                        resolve(true);
-                    };
-
-                    ws.onerror = () => {
-                        clearTimeout(timeout);
-                        resolve(false);
-                    };
-
-                    ws.onclose = (e) => {
-                        // If closed before we resolved, it's a failure (unless we closed it ourselves)
-                        if (e.code !== 1000) {
-                            clearTimeout(timeout);
-                            resolve(false);
-                        }
-                    };
-                });
-
-                const isConnected = await testPromise;
-
-                if (isConnected) {
-                    console.log('✅ [PROXY] WebSocket is reachable, re-establishing transport...');
+                // If we have BareMux, re-establish transport
+                if (window.bareMuxConnection && config.transportPath) {
                     try {
+                        console.log('🔄 [PROXY] Re-establishing BareMux transport...');
                         // Re-establish transport (this should handle stale connections internally)
                         await window.bareMuxConnection.setTransport(
                             config.transportPath,
                             [{ websocket: config.wispUrl }]
                         );
                         console.log('✅ [PROXY] Transport re-established successfully');
-                        return true;
                     } catch (e) {
                         console.error('❌ [PROXY] Transport re-establishment failed:', e);
-                        return false;
                     }
-                } else {
-                    console.warn('⚠️ [PROXY] WebSocket unreachable, connection may fail');
-                    // Still try to re-establish - the network might come back
+                }
+                return true;
+            } else {
+                console.warn('⚠️ [PROXY] WebSocket unreachable, connection may fail');
+
+                // If we have BareMux, still try to re-establish - the network might come back
+                if (window.bareMuxConnection && config.transportPath) {
                     try {
                         await window.bareMuxConnection.setTransport(
                             config.transportPath,
@@ -523,18 +540,16 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                     } catch (e) {
                         // Ignore - this is a best-effort recovery
                     }
-                    return false;
                 }
-            };
+                return false;
+            }
+        };
 
-            // Also try to recover before any navigation attempt
-            window.ProxyService.ensureConnection = window.ProxyService.verifyAndRecoverConnection;
+        // Also try to recover before any navigation attempt
+        window.ProxyService.ensureConnection = window.ProxyService.verifyAndRecoverConnection;
 
-            console.log('🛡️ [PROXY] Connection recovery system initialized');
-        } else {
-            console.log('⚠️ [PROXY] Skipping BareMux (requires cross-origin isolation)');
-            console.log('ℹ️ [PROXY] Using Scramjet direct WISP transport only');
-        }
+        console.log('🛡️ [PROXY] Connection recovery system initialized');
+
 
         window.ProxyService.initialized = true;
 
