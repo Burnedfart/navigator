@@ -2,7 +2,7 @@
 .btn-primary,
 .btn-secondary,
 .full-width-btn {
-    padding: 5px 16px;
+    padding: 9px 16px;
     border-radius: var(--radius-md);
     font-size: 13px;
     font-weight: 500;
