@@ -5,7 +5,37 @@ class Browser {
         this.nextTabId = 1;
         this.maxTabs = 15;
 
-        this.blockedKeywords = ["cG9ybg==", "eHh4", "YWR1bHQ=", "c2V4"];
+        this.blockedKeywords = [
+            "cG9ybg==",
+            "eHh4",
+            "YWR1bHQ=",
+            "c2V4",
+            "eHZpZGVvcw==",
+            "cG9ybmh1Yg==",
+            "eG54eA==",
+            "eGhhbXN0ZXI=",
+            "aGVudGFp",
+            "cnVsZTM0",
+            "bnNmdw==",
+            "cmVkdHViZQ==",
+            "eW91cG9ybg==",
+            "Y2hhdHVyYmF0ZQ==",
+            "YnJhenplcnM=",
+            "YmFuZ2Jyb3M=",
+            "ZXJvbWU=",
+            "b25seWZhbnM=",
+            "c3BhbmtiYW5n",
+            "ZXBvcm5lcg==",
+            "aHFwb3JuZXI=",
+            "cG9ybnRyZXg=",
+            "bW90aGVybGVzcw==",
+            "aGVhdnktcg==",
+            "amF2",
+            "cG9ybnZpYmU=",
+            "dGhvdGh1Yg==",
+            "dnBvcm4=",
+            "eW91amF2"
+        ];
 
         // DOM Elements
         this.tabsContainer = document.getElementById('tabs-container');
@@ -669,7 +699,6 @@ class Browser {
         const defaultApps = [
             { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
             { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
-            { name: 'YouTube (Unblocked)', url: 'https://yewtu.be', icon: 'YT' },
             { name: 'SpenFlix (Movies)', url: 'https://spenflix.ru', icon: 'SF' },
             { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' }
         ];
