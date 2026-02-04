@@ -45,8 +45,11 @@ window.StorageHealth = {
 
                     db.close();
 
+                    // It's valid if all stores exist, OR if it's completely empty (new/cleared)
+                    const isValid = missingStores.length === 0 || existingStores.length === 0;
+
                     resolve({
-                        valid: missingStores.length === 0,
+                        valid: isValid,
                         missing: missingStores,
                         exists: true,
                         stores: existingStores.length
@@ -54,12 +57,12 @@ window.StorageHealth = {
                 };
 
                 openReq.onupgradeneeded = (event) => {
-                    // Database doesn't exist or has wrong version
+                    // Database doesn't exist - this is a CLEAN state, so it's VALID
                     const db = event.target.result;
                     db.close();
                     resolve({
-                        valid: false,
-                        missing: requiredStores,
+                        valid: true,
+                        missing: [],
                         exists: false,
                         stores: 0
                     });
