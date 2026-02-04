@@ -1,29 +1,39 @@
 const OriginalResponse = self.Response;
 self.Response = function (body, init) {
-    if (init) {
-        if (init.status && [204, 205, 304].includes(init.status)) {
+    init = init || {};
+
+    try {
+        if (init.status && [101, 204, 205, 304].includes(Number(init.status))) {
             body = null;
         }
-        if (init.status === 0 || !init.status) {
+
+        if (!init.status || init.status < 200 || init.status > 599) {
             init.status = 200;
         }
+
         if (init.statusText) {
             init.statusText = String(init.statusText).replace(/[^\x20-\x7E]/g, '');
         }
-    }
-    try {
+
         return new OriginalResponse(body, init);
     } catch (e) {
-        console.warn('SW: 🚨 Response construction failed, retrying with null body:', e);
+        console.warn('SW: 🚨 Critical Response construction failure. Attempting emergency recovery.', e);
         try {
-            return new OriginalResponse(null, init);
-        } catch (e2) {
-            return new OriginalResponse('Internal Proxy Error', { status: 500 });
+            return new OriginalResponse(null, {
+                status: (init && init.status && init.status >= 200) ? init.status : 200,
+                headers: init ? init.headers : undefined
+            });
+        } catch (fatalErr) {
+            return new OriginalResponse('Internal Proxy Collision (LinkedIn Fix)', { status: 500 });
         }
     }
 };
 Object.setPrototypeOf(self.Response, OriginalResponse);
 self.Response.prototype = OriginalResponse.prototype;
+
+// Bump to force cache refresh
+const VERSION = 'v55';
+const CACHE_NAME = 'scramjet-proxy-cache-v55';
 
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
@@ -39,9 +49,7 @@ try {
     }
 }
 
-// Bump to force cache refresh
-const VERSION = 'v54';
-const CACHE_NAME = 'scramjet-proxy-cache-v54';
+
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
