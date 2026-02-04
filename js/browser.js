@@ -7,6 +7,7 @@ class Browser {
 
         // Blocked Sites List (Loaded from JSON)
         this.blockedSites = [];
+        this.blockedKeywords = [];
 
         // DOM Elements
         this.tabsContainer = document.getElementById('tabs-container');
@@ -1350,6 +1351,8 @@ class Browser {
         if (this.securitySettings && this.securitySettings.disableRestrictions) {
             return false;
         }
+
+        if (!url || url === 'browser://home') return false;
 
         try {
             const urlObj = new URL(url);
