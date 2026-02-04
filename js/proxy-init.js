@@ -1,3 +1,6 @@
+window.APP_BASE_URL = new URL("./", window.location.href).href;
+window.SCRAMJET_PREFIX = new URL("./service/", window.APP_BASE_URL).pathname;
+
 window.ProxyService = {
     initialized: false,
     ready: null, // Promise
@@ -54,11 +57,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             console.warn('⚠️ [PROXY] Storage health module not loaded, skipping pre-flight check');
         }
 
-        // 2. Calculate Base Paths
-        window.APP_BASE_URL = new URL("./", window.location.href).href;
-        window.SCRAMJET_PREFIX = new URL("./service/", window.APP_BASE_URL).pathname;
-
-        // 3. Register Service Worker with improved options
+        // 1. PRE-FLIGHT HEALTH CHECK (NEW)
         if (!('serviceWorker' in navigator)) {
             throw new Error('Service Worker not supported');
         }

@@ -131,7 +131,11 @@ class Browser {
         this.errorMessage = document.getElementById('error-message');
         this.errorOkBtn = document.getElementById('error-ok-btn');
 
-        // Disguise Presets
+        // Initialize Disguise Presets
+        if (!window.APP_BASE_URL) {
+            window.APP_BASE_URL = new URL("./", window.location.href).href;
+        }
+
         this.disguises = {
             'default': {
                 title: 'Navigator',
