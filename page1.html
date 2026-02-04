@@ -221,30 +221,41 @@
         function launch() {
             const popup = window.open("about:blank", "_blank");
             if (!popup || popup.closed) {
-                alert("Window blocked. Please allow popups for this site.");
+                alert("Please allow popups for this site to access Navigator.");
                 return;
             }
 
             const doc = popup.document;
+
+            // Create the document structure reliably
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Home - Google Drive</title>
+                    <link rel="icon" href="https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png">
+                    <style>
+                        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+                        iframe { border: none; width: 100%; height: 100%; display: block; }
+                    </style>
+                </head>
+                <body></body>
+                </html>
+            `);
+            doc.close();
+
+            // Resolve index.html path before redirecting
+            const proxyUrl = new URL('index.html', window.location.href).href;
+
             const iframe = doc.createElement("iframe");
-            const style = iframe.style;
-            const link = doc.createElement("link");
-
-            doc.title = "Home - Google Drive";
-            link.rel = "icon";
-            link.href = "https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png";
-
-            iframe.src = new URL('index.html', window.location.href).href;
-            style.position = "fixed";
-            style.top = style.bottom = style.left = style.right = "0";
-            style.border = style.outline = "none";
-            style.width = style.height = "100%";
-
-            doc.head.appendChild(link);
+            iframe.src = proxyUrl;
             doc.body.appendChild(iframe);
 
-            // Redirect current page to something safe
-            window.location.replace("https://google.com");
+            // Short delay to ensure the popup has context before the parent redirects
+            setTimeout(() => {
+                window.location.replace("https://google.com");
+            }, 250);
         }
 
         // Smooth entrance for features on scroll
