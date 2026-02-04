@@ -135,7 +135,7 @@ class Browser {
         this.disguises = {
             'default': {
                 title: 'Navigator',
-                favicon: 'assets/logo.png'
+                favicon: new URL('assets/logo.png', window.APP_BASE_URL).href
             },
             'google-classroom': {
                 title: 'Home - Classroom',
@@ -1918,7 +1918,7 @@ class Browser {
         const iconEl = tab.element.querySelector('.tab-favicon');
         if (!iconEl) return;
 
-        const fallback = 'assets/logo.png';
+        const fallback = new URL('assets/logo.png', window.APP_BASE_URL).href;
         iconEl.style.display = 'block';
 
         if (src && src !== '') {
@@ -2160,7 +2160,7 @@ class Browser {
             el.className = 'bookmark-item';
 
             const faviconUrl = this.getFaviconUrl(bookmark.url);
-            const fallback = 'assets/logo.png';
+            const fallback = new URL('assets/logo.png', window.APP_BASE_URL).href;
 
             el.innerHTML = `
                 <img src="${faviconUrl || fallback}" class="bookmark-icon ${!faviconUrl ? 'use-filter' : ''}" onerror="this.src='${fallback}';this.classList.add('use-filter')">
