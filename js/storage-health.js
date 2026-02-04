@@ -108,6 +108,14 @@ window.StorageHealth = {
      * Delete Scramjet database with forced cleanup
      */
     async deleteScramjetDB() {
+        console.log('🗑️ [STORAGE] Preparing for database deletion...');
+
+        // Signal SW to close DB handles
+        await this.invalidateServiceWorkerConfig();
+
+        // CRITICAL: Unregister SWs first, as they often hold the DB connection open
+        await this.unregisterServiceWorkers();
+
         console.log('🗑️ [STORAGE] Deleting $scramjet database...');
 
         return new Promise((resolve) => {
@@ -125,16 +133,16 @@ window.StorageHealth = {
                 };
 
                 deleteReq.onblocked = () => {
-                    console.warn('⚠️ [STORAGE] Delete blocked - connections still open');
-                    // Continue anyway, browser will clean up eventually
-                    setTimeout(() => resolve(false), 500);
+                    console.warn('⚠️ [STORAGE] Delete blocked - connections still open in other tabs');
+                    // We already tried unregistering SW, so this is likely another tab
+                    resolve(false);
                 };
 
                 // Timeout
                 setTimeout(() => {
                     console.warn('⚠️ [STORAGE] Delete timeout');
                     resolve(false);
-                }, 3000);
+                }, 4000);
 
             } catch (e) {
                 console.error('❌ [STORAGE] Delete exception:', e);
@@ -185,6 +193,21 @@ window.StorageHealth = {
         }
     },
 
+    /**
+     * Signal Service Worker to invalidate config and close DB handles
+     */
+    async invalidateServiceWorkerConfig() {
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+
+        try {
+            navigator.serviceWorker.controller.postMessage({ type: 'invalidate_config' });
+            // Give it a moment to process
+            await new Promise(r => setTimeout(r, 100));
+        } catch (e) {
+            console.warn('⚠️ [STORAGE] SW invalidate failed:', e);
+        }
+    },
+
     async performFullReset() {
         console.log('🔄 [STORAGE] Starting full storage reset...');
 
@@ -205,11 +228,12 @@ window.StorageHealth = {
 
         const issues = [];
         let autoFixed = false;
+        let needsReload = false;
 
         const idbAvailable = await this.isIndexedDBAvailable();
         if (!idbAvailable) {
             issues.push('IndexedDB not available or blocked');
-            return { healthy: false, issues, autoFixed: false };
+            return { healthy: false, issues, autoFixed: false, needsReload: false };
         }
 
         const dbStatus = await this.validateScramjetDB();
@@ -220,15 +244,18 @@ window.StorageHealth = {
                 console.warn('⚠️ [STORAGE] Database is blocked, attempting cleanup...');
                 await this.deleteScramjetDB();
                 autoFixed = true;
+                needsReload = true;
             } else if (dbStatus.missing.length > 0) {
                 issues.push(`Missing object stores: ${dbStatus.missing.join(', ')}`);
                 console.warn('⚠️ [STORAGE] Invalid schema, deleting corrupt database...');
                 await this.deleteScramjetDB();
                 autoFixed = true;
+                needsReload = true;
             } else if (dbStatus.timeout) {
                 issues.push('Database check timeout');
                 await this.deleteScramjetDB();
                 autoFixed = true;
+                needsReload = true;
             }
         }
 
@@ -242,7 +269,7 @@ window.StorageHealth = {
             console.error('❌ [STORAGE] Health check failed:', issues);
         }
 
-        return { healthy, issues, autoFixed };
+        return { healthy, issues, autoFixed, needsReload };
     }
 };
 

@@ -50,6 +50,13 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                 throw new Error(`Storage health check failed: ${healthResult.issues.join(', ')}`);
             }
 
+            if (healthResult.needsReload) {
+                console.warn('⚠️ [PROXY] Storage recovered. Reloading to ensure clean state...');
+                // Briefly wait for logs to be visible
+                setTimeout(() => window.location.reload(), 500);
+                throw new Error('RELOADING_FOR_CLEAN_STATE');
+            }
+
             if (healthResult.autoFixed) {
                 console.log('🔧 [PROXY] Storage issues auto-fixed, proceeding with clean state');
             }
