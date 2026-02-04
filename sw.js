@@ -1,3 +1,30 @@
+const OriginalResponse = self.Response;
+self.Response = function (body, init) {
+    if (init) {
+        if (init.status && [204, 205, 304].includes(init.status)) {
+            body = null;
+        }
+        if (init.status === 0 || !init.status) {
+            init.status = 200;
+        }
+        if (init.statusText) {
+            init.statusText = String(init.statusText).replace(/[^\x20-\x7E]/g, '');
+        }
+    }
+    try {
+        return new OriginalResponse(body, init);
+    } catch (e) {
+        console.warn('SW: 🚨 Response construction failed, retrying with null body:', e);
+        try {
+            return new OriginalResponse(null, init);
+        } catch (e2) {
+            return new OriginalResponse('Internal Proxy Error', { status: 500 });
+        }
+    }
+};
+Object.setPrototypeOf(self.Response, OriginalResponse);
+self.Response.prototype = OriginalResponse.prototype;
+
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
     console.log('SW: ✅ Scramjet script imported locally');
@@ -13,8 +40,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v53';
-const CACHE_NAME = 'scramjet-proxy-cache-v53';
+const VERSION = 'v54';
+const CACHE_NAME = 'scramjet-proxy-cache-v54';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -97,17 +124,10 @@ function normalizeResponseHeaders(response, relaxEmbedding) {
         headers = applyRelaxedEmbeddingHeaders(headers);
     }
 
-    // CRITICAL: Always add Cross-Origin-Resource-Policy for COEP compatibility
     headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    // FIX: LinkedIn/Modern Web Compatibility
-    // The Response constructor forbids a body for certain status codes (204, 205, 304).
-    // Passing "response.body" for these will throw "Failed to construct response object".
-    const noBodyStatuses = [204, 205, 304];
-    const body = noBodyStatuses.includes(response.status) ? null : response.body;
-
-    return new Response(body, {
-        status: response.status === 0 ? 200 : response.status,
+    return new Response(response.body, {
+        status: response.status,
         statusText: response.statusText,
         headers,
     });
