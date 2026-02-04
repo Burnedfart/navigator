@@ -398,10 +398,10 @@ class Browser {
 
             try {
                 const parentUrl = window.parent.location.href;
-                // Check for the existing about:blank cloak
-                if (parentUrl === 'about:blank') {
+                // Check for about:blank OR the landing page origin
+                if (parentUrl === 'about:blank' || parentUrl.includes('/github.io/a/') || parentUrl.includes('/a/page1.html')) {
                     isAllowedFrame = true;
-                    console.log('[BROWSER] 🔐 Running in about:blank cloak');
+                    console.log('[BROWSER] 🔐 Running in cloaked context');
                 }
             } catch (e) {
                 isAllowedFrame = true;

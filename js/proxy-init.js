@@ -11,20 +11,23 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         if (isInIframe) {
             let isAboutBlankCloak = false;
             try {
-                isAboutBlankCloak = window.parent.location.href === 'about:blank';
+                const parentHref = window.parent.location.href;
+                isAboutBlankCloak = parentHref === 'about:blank' ||
+                    parentHref.includes('/github.io/a/') ||
+                    parentHref.includes('/a/page1.html');
             } catch (e) {
-                // Cross-origin error means it's not our cloak
+                // Cross-origin error means it's definitely not our same-origin landing page
                 isAboutBlankCloak = false;
             }
 
             if (!isAboutBlankCloak) {
-                console.log('🖼️ [PROXY] Inception detected - running in iframe. Skipping initialization.');
+                console.log('🖼️ [PROXY] Inception detected - running in unauthorized iframe. Skipping initialization.');
                 // Mark as "initialized" to prevent errors in browser.js
                 window.ProxyService.initialized = true;
                 resolve(true);
                 return; // CRITICAL: Stop all initialization
             } else {
-                console.log('🔐 [PROXY] Running in about:blank cloak - initialization allowed');
+                console.log('🔐 [PROXY] Running in cloaked context - initialization allowed');
             }
         }
 
