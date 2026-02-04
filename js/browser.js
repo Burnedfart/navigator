@@ -5,38 +5,6 @@ class Browser {
         this.nextTabId = 1;
         this.maxTabs = 15;
 
-        this.blockedKeywords = [
-            "cG9ybg==",
-            "eHh4",
-            "YWR1bHQ=",
-            "c2V4",
-            "eHZpZGVvcw==",
-            "cG9ybmh1Yg==",
-            "eG54eA==",
-            "eGhhbXN0ZXI=",
-            "aGVudGFp",
-            "cnVsZTM0",
-            "bnNmdw==",
-            "cmVkdHViZQ==",
-            "eW91cG9ybg==",
-            "Y2hhdHVyYmF0ZQ==",
-            "YnJhenplcnM=",
-            "YmFuZ2Jyb3M=",
-            "ZXJvbWU=",
-            "b25seWZhbnM=",
-            "c3BhbmtiYW5n",
-            "ZXBvcm5lcg==",
-            "aHFwb3JuZXI=",
-            "cG9ybnRyZXg=",
-            "bW90aGVybGVzcw==",
-            "aGVhdnktcg==",
-            "amF2",
-            "cG9ybnZpYmU=",
-            "dGhvdGh1Yg==",
-            "dnBvcm4=",
-            "eW91amF2"
-        ];
-
         // Blocked Sites List (Loaded from JSON)
         this.blockedSites = [];
 
@@ -100,6 +68,9 @@ class Browser {
             tabSleepValue: document.getElementById('tab-sleep-value'),
             tabSleepTicks: document.querySelectorAll('.number-line-ticks .tick'),
             tabSleepDot: document.getElementById('tab-sleep-dot')
+        };
+        this.securitySettings = {
+            disableRestrictions: false
         };
         this.sleepThresholds = [60, 300, 600, 1200, 1800]; // 1m, 5m, 10m, 20m, 30m
         this.sleepInterval = null;
@@ -237,6 +208,7 @@ class Browser {
                 });
             }
         });
+
 
         // Settings Sidebar Navigation
         this.settingsNavItems = document.querySelectorAll('.nav-item');
@@ -451,6 +423,7 @@ class Browser {
         this.loadTheme();
         this.loadDisguise();
         this.loadPerformanceSettings();
+        this.loadSecuritySettings();
         await this.loadBlockedSites();
         this.loadBookmarks();
         this.updateProxyStatus('loading');
@@ -1017,16 +990,26 @@ class Browser {
     loadPerformanceSettings() {
         Object.keys(this.perfToggles).forEach(key => {
             const toggle = this.perfToggles[key];
-            if (toggle) {
-                const val = localStorage.getItem(`perf_${key}`);
+            if (!toggle) return;
+            const saved = localStorage.getItem(`perf_${key}`);
+            if (saved !== null) {
                 if (toggle.type === 'checkbox') {
-                    toggle.checked = val === 'true';
-                } else if (toggle.type === 'range' && val !== null) {
-                    toggle.value = val;
+                    toggle.checked = saved === 'true';
+                } else {
+                    toggle.value = saved;
                 }
             }
         });
         this.applyPerformanceSettings();
+    }
+
+    loadSecuritySettings() {
+        Object.keys(this.securitySettings).forEach(key => {
+            const saved = localStorage.getItem(`sec_${key}`);
+            if (saved !== null) {
+                this.securitySettings[key] = saved === 'true';
+            }
+        });
     }
 
     applyPerformanceSettings() {
@@ -1329,6 +1312,11 @@ class Browser {
     }
 
     isUrlBlocked(url) {
+        // Check if restrictions are globally disabled
+        if (this.securitySettings && this.securitySettings.disableRestrictions) {
+            return false;
+        }
+
         try {
             const urlObj = new URL(url);
             const fullString = urlObj.toString().toLowerCase();
