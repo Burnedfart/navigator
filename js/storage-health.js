@@ -58,20 +58,19 @@ window.StorageHealth = {
 
                     db.close();
 
-                    // It's valid if all stores exist, OR if it's completely empty (new/cleared)
-                    const isValid = missingStores.length === 0 || existingStores.length === 0;
+                    const isEmpty = existingStores.length === 0;
+                    const isValid = missingStores.length === 0 && !isEmpty;
 
                     resolve({
                         valid: isValid,
                         missing: missingStores,
                         exists: true,
+                        empty: isEmpty,
                         stores: existingStores.length
                     });
                 };
 
                 openReq.onupgradeneeded = (event) => {
-                    // Database was missing - DO NOT just close it (it leaves an empty file)
-                    // We must delete it immediately so Scramjet can create its own version
                     const db = event.target.result;
                     db.close();
                     indexedDB.deleteDatabase('$scramjet');
@@ -261,6 +260,12 @@ window.StorageHealth = {
             if (dbStatus.blocked) {
                 issues.push('Database blocked - connections still open');
                 console.warn('⚠️ [STORAGE] Database is blocked, attempting cleanup...');
+                await this.deleteScramjetDB();
+                autoFixed = true;
+                needsReload = true;
+            } else if (dbStatus.empty) {
+                issues.push('Database exists but is empty');
+                console.warn('⚠️ [STORAGE] Empty database detected, purging to allow clean initialization...');
                 await this.deleteScramjetDB();
                 autoFixed = true;
                 needsReload = true;
