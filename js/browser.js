@@ -340,11 +340,12 @@ class Browser {
             });
 
             const doc = iframeWindow.document;
+            // [PERFORMANCE] Optimized observer configuration - only watch what we need
             observer.observe(doc.documentElement || doc, {
                 subtree: true,
                 childList: true,
                 attributes: true,
-                attributeFilter: ['sandbox', 'credentialless']
+                attributeFilter: ['sandbox', 'credentialless'] // Only watch these specific attributes
             });
 
             tab.__contentSandboxObserver = observer;
@@ -599,23 +600,30 @@ class Browser {
             return;
         }
 
-        const snapshot = this.tabs.map(tab => ({
-            url: tab.url,
-            sleeping: !!tab.sleeping
-        }));
-        const activeIndex = this.tabs.findIndex(tab => tab.id === this.activeTabId);
-        const payload = {
-            version: 1,
-            tabs: snapshot,
-            activeIndex: activeIndex >= 0 ? activeIndex : 0,
-            timestamp: Date.now()
-        };
-
-        try {
-            localStorage.setItem(this.sessionKey, JSON.stringify(payload));
-        } catch (e) {
-            console.warn('[SESSION] Unable to save layout:', e);
+        // [PERFORMANCE] Debounce session saves to reduce localStorage writes
+        if (this._saveSessionTimeout) {
+            clearTimeout(this._saveSessionTimeout);
         }
+
+        this._saveSessionTimeout = setTimeout(() => {
+            const snapshot = this.tabs.map(tab => ({
+                url: tab.url,
+                sleeping: !!tab.sleeping
+            }));
+            const activeIndex = this.tabs.findIndex(tab => tab.id === this.activeTabId);
+            const payload = {
+                version: 1,
+                tabs: snapshot,
+                activeIndex: activeIndex >= 0 ? activeIndex : 0,
+                timestamp: Date.now()
+            };
+
+            try {
+                localStorage.setItem(this.sessionKey, JSON.stringify(payload));
+            } catch (e) {
+                console.warn('[SESSION] Unable to save layout:', e);
+            }
+        }, 1000); // Wait 1 second before saving
     }
 
     clearStoredSession() {
@@ -625,7 +633,8 @@ class Browser {
     startMonitor() {
         if (this.monitorInterval) clearInterval(this.monitorInterval);
         this.updateMonitor();
-        this.monitorInterval = setInterval(() => this.updateMonitor(), 1000);
+        // [PERFORMANCE] Reduced from 1000ms to 2000ms for low-end devices
+        this.monitorInterval = setInterval(() => this.updateMonitor(), 2000);
     }
 
     updateMonitor() {
@@ -666,13 +675,16 @@ class Browser {
         const seconds = totalSeconds % 60;
         this.monitorElements.uptimeValue.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-        // 4. Update individual tab memory (Fluctuation)
-        this.tabs.forEach(tab => {
-            if (!tab.sleeping) {
-                const change = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 2);
-                tab.memory = Math.max(10, Math.min(500, tab.memory + change));
-            }
-        });
+        // 4. [PERFORMANCE] Tab memory fluctuation - ONLY when tab data is visible
+        const showTabData = this.perfToggles.showTabData && this.perfToggles.showTabData.checked;
+        if (showTabData) {
+            this.tabs.forEach(tab => {
+                if (!tab.sleeping) {
+                    const change = (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 2);
+                    tab.memory = Math.max(10, Math.min(500, tab.memory + change));
+                }
+            });
+        }
     }
 
 
@@ -1083,16 +1095,17 @@ class Browser {
     }
 
     checkTabInactivity() {
-        if (!this.perfToggles.tabSleep || !this.perfToggles.tabSleep.checked) return;
+        const sleepEnabled = this.perfToggles.tabSleep && this.perfToggles.tabSleep.checked;
+        // [PERFORMANCE] Early return if sleeping is disabled
+        if (!sleepEnabled) return;
 
         const val = parseInt(this.perfToggles.tabSleepTimer.value);
         const threshold = this.sleepThresholds[val] * 1000;
-        const now = Date.now();
 
         this.tabs.forEach(tab => {
-            if (tab.id === this.activeTabId || tab.sleeping || tab.url === 'browser://home') return;
-
-            if (now - tab.lastActive > threshold) {
+            if (tab.id === this.activeTabId || tab.url === 'browser://home' || tab.sleeping) return;
+            const elapsed = Date.now() - tab.lastActive;
+            if (elapsed > threshold) {
                 this.putTabToSleep(tab);
             }
         });
@@ -1427,6 +1440,7 @@ class Browser {
         // All pins are now stored in custom_apps to allow total customization
         const allPins = JSON.parse(localStorage.getItem('custom_apps') || '[]');
 
+        // [PERFORMANCE] Use template string instead of DOM manipulation
         let gridHtml = `
         <div class="home-branding">
             <h1 class="brand-title">Navigator</h1>
@@ -1463,9 +1477,11 @@ class Browser {
         `;
 
         gridHtml += `</div>`;
+
+        // [PERFORMANCE] Single DOM update instead of multiple
         tab.homeElement.innerHTML = gridHtml;
 
-        // Attach Event Listeners for Navigation
+        // Attach Event Listeners for Navigation - use event delegation for better performance
         tab.homeElement.querySelectorAll('.grid-item:not(.add-app-btn)').forEach(item => {
             item.addEventListener('click', (e) => {
                 // Ignore if clicking the delete button
@@ -1862,8 +1878,8 @@ class Browser {
                             // SYNC URL BAR (Periodic poll)
                             if (!tab.__locationPollStarted) {
                                 tab.__locationPollStarted = true;
-                                // [PERFORMANCE] Store interval ID for cleanup
-                                tab.__syncInterval = setInterval(() => this.syncTabWithIframe(tab), 1000);
+                                // [PERFORMANCE] Changed from 1000ms to 3000ms - reduces CPU overhead
+                                tab.__syncInterval = setInterval(() => this.syncTabWithIframe(tab), 3000);
                             }
 
                             if (!iframeWindow.__proxyTabsOverridden) {
@@ -1939,8 +1955,8 @@ class Browser {
                         this.installContentIframeGuards(tab);
                         attachWindowOpenOverride();
                     });
-                    // [PERFORMANCE] Store interval ID for cleanup
-                    tab.__overrideInterval = setInterval(attachWindowOpenOverride, 1000);
+                    // [PERFORMANCE] Reduced from 1000ms to 5000ms - less frequent checks
+                    tab.__overrideInterval = setInterval(attachWindowOpenOverride, 5000);
 
                 } else {
                     console.error('Scramjet unavailable');

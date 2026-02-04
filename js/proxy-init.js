@@ -392,7 +392,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         // 8. Connection Keep-Alive & Recovery System (ALWAYS RUN)
         // This ensures the Service Worker stays alive and initialized even when not using BareMux
 
-        // Keep-alive ping interval (every 25 seconds) - also re-sends init signal to keep SW alive
+        // Keep-alive ping interval (every 45 seconds) - also re-sends init signal to keep SW alive
         let keepAliveInterval = setInterval(async () => {
             try {
                 // Re-send init signal to keep SW initialized (it may have been terminated)
@@ -401,7 +401,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
             } catch (e) {
                 console.warn('⚠️ [PROXY] Keep-alive ping failed:', e);
             }
-        }, 25000);
+        }, 45000);
 
         // Visibility-based recovery - when user returns to tab after being away
         let lastVisibilityChange = Date.now();
