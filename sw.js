@@ -13,8 +13,8 @@ try {
 }
 
 // Bump to force cache refresh
-const VERSION = 'v51';
-const CACHE_NAME = 'scramjet-proxy-cache-v51';
+const VERSION = 'v52';
+const CACHE_NAME = 'scramjet-proxy-cache-v52';
 
 self.addEventListener('install', (event) => {
     console.log(`SW: 📥 Installing version ${VERSION}...`);
@@ -97,11 +97,16 @@ function normalizeResponseHeaders(response, relaxEmbedding) {
         headers = applyRelaxedEmbeddingHeaders(headers);
     }
 
-    // CRITICAL: Alway add Cross-Origin-Resource-Policy for COEP compatibility
-    // This fixed fonts and other cross-origin assets being blocked
+    // CRITICAL: Always add Cross-Origin-Resource-Policy for COEP compatibility
     headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    return new Response(response.body, {
+    // FIX: LinkedIn/Modern Web Compatibility
+    // The Response constructor forbids a body for certain status codes (204, 205, 304).
+    // Passing "response.body" for these will throw "Failed to construct response object".
+    const noBodyStatuses = [204, 205, 304];
+    const body = noBodyStatuses.includes(response.status) ? null : response.body;
+
+    return new Response(body, {
         status: response.status === 0 ? 200 : response.status,
         statusText: response.statusText,
         headers,
