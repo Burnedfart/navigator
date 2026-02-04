@@ -72,9 +72,7 @@ class Browser {
         this.customThemeNameInput = document.getElementById('custom-theme-name');
         this.colorInputs = document.querySelectorAll('.color-item input[type="color"]');
 
-        // Cloak Elements
-        this.cloakToggle = document.getElementById('cloak-toggle');
-        this.btnTriggerCloak = document.getElementById('btn-trigger-cloak');
+
 
         // Disguise Elements
         this.disguiseSelect = document.getElementById('disguise-select');
@@ -177,17 +175,7 @@ class Browser {
             console.error('[BROWSER] Fatal initialization error:', err);
         });
 
-        // Cloak Event Bindings
-        if (this.cloakToggle) {
-            this.cloakToggle.addEventListener('change', () => {
-                localStorage.setItem('ab', this.cloakToggle.checked ? 'true' : 'false');
-            });
-        }
-        if (this.btnTriggerCloak) {
-            this.btnTriggerCloak.addEventListener('click', () => {
-                this.openCloaked();
-            });
-        }
+
 
         // Disguise Change Detection
         if (this.disguiseSelect) {
@@ -440,9 +428,7 @@ class Browser {
         this.loadPerformanceSettings();
         this.loadBookmarks();
         this.updateProxyStatus('loading');
-        if (localStorage.getItem('ab') === 'true') {
-            this.openCloaked();
-        }
+
 
         const params = new URLSearchParams(window.location.search);
         const urlToOpen = params.get('url');
@@ -1989,197 +1975,13 @@ class Browser {
         }
     }
 
-    applyDisguise() {
-        const selected = this.disguiseSelect.value;
-        const disguise = this.disguises[selected];
-
-        if (disguise) {
-            document.title = disguise.title;
-            this.updateFaviconLink(disguise.favicon);
-            localStorage.setItem('tab_disguise', selected);
-            console.log('[BROWSER] Applied disguise:', selected);
-        }
-    }
-
-    resetDisguise() {
-        const defaultDisguise = this.disguises['default'];
-        document.title = defaultDisguise.title;
-        this.updateFaviconLink(defaultDisguise.favicon);
-        localStorage.setItem('tab_disguise', 'default');
-        this.disguiseSelect.value = 'default';
-        console.log('[BROWSER] Reset to default disguise');
-    }
-
-    loadDisguise() {
-        const saved = localStorage.getItem('tab_disguise') || 'default';
-        const disguise = this.disguises[saved];
-
-        if (disguise) {
-            document.title = disguise.title;
-            this.updateFaviconLink(disguise.favicon);
-        }
-    }
-
-    updateFaviconLink(href) {
-        let link = document.querySelector("link[rel~='icon']");
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-        }
-        link.href = href;
-    }
-
-    // Panic Button Methods
-    savePanicSettings() {
-        const key = this.panicKeyInput.value.trim();
-        let url = this.panicUrlInput.value.trim();
-
-        if (!key) {
-            alert('Please set a panic key first.');
-            return;
-        }
-
-        if (!url) {
-            alert('Please enter a redirect URL.');
-            return;
-        }
-
-        // Add https protocol if missing
-        if (!/^https?:\/\//i.test(url)) {
-            url = 'https://' + url;
-            this.panicUrlInput.value = url;
-        }
-
-        // Basic URL validation
-        try {
-            new URL(url);
-        } catch (e) {
-            alert('Please enter a valid URL.');
-            return;
-        }
-
-        localStorage.setItem('panic_key', key);
-        localStorage.setItem('panic_url', url);
-        console.log(`[PANIC] Saved panic button: Key="${key}", URL="${url}"`);
-    }
-
-    clearPanicSettings() {
-        localStorage.removeItem('panic_key');
-        localStorage.removeItem('panic_url');
-        this.panicKeyInput.value = '';
-        this.panicUrlInput.value = '';
-        console.log('[PANIC] Cleared panic button settings');
-    }
-
-    loadPanicSettings() {
-        const key = localStorage.getItem('panic_key') || '';
-        const url = localStorage.getItem('panic_url') || '';
-        if (this.panicKeyInput) this.panicKeyInput.value = key;
-        if (this.panicUrlInput) this.panicUrlInput.value = url;
-    }
-
-    handlePanicKey(e) {
-        const panicKey = localStorage.getItem('panic_key');
-        const panicUrl = localStorage.getItem('panic_url');
-
-        if (!panicKey || !panicUrl) return;
-
-        // Don't trigger if user is typing in an input field
-        const target = e.target;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-            return;
-        }
-
-        // Check if the pressed key matches the panic key
-        if (e.key === panicKey) {
-            e.preventDefault();
-            console.log('[PANIC] 🚨 Panic button triggered! Redirect to:', panicUrl);
-
-            // Redirect the top-level browser window (native tab)
-            // Using .replace() so it's harder to just "Go Back"
-            window.top.location.replace(panicUrl);
-        }
-    }
-
-    openCloaked() {
-        console.log('[BROWSER] 🔐 Cloak requested');
-
-        let inFrame;
-        try {
-            inFrame = window !== top;
-        } catch (e) {
-            inFrame = true;
-        }
-
-        if (inFrame) {
-            console.warn('[BROWSER] ⚠️ Already in iframe, cannot cloak');
-            alert('Already running in a frame. Cloaking is not available.');
-            return;
-        }
-
-        if (navigator.userAgent.includes("Firefox")) {
-            console.warn('[BROWSER] ⚠️ Firefox detected, cloaking disabled');
-            alert('Cloaking is not supported in Firefox. Please use Chrome, Edge, or another Chromium-based browser.');
-            return;
-        }
-
-        console.log('[BROWSER] 🔐 Opening cloaked window...');
-        const popup = window.open("about:blank", "_blank");
-
-        if (!popup || popup.closed) {
-            console.error('[BROWSER] ❌ Popup blocked');
-            alert("Window blocked. Please allow popups for this site.");
-        } else {
-            console.log('[BROWSER] ✅ Popup opened, setting up cloak...');
-            const doc = popup.document;
-            const iframe = doc.createElement("iframe");
-            const style = iframe.style;
-            const link = doc.createElement("link");
-
-            const name = localStorage.getItem("cloak_name") || "My Drive - Google Drive";
-            const icon = localStorage.getItem("cloak_icon") || "https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png";
-
-            doc.title = name;
-            link.rel = "icon";
-            link.href = icon;
-
-            iframe.src = location.href;
-            style.position = "fixed";
-            style.top = style.bottom = style.left = style.right = "0";
-            style.border = style.outline = "none";
-            style.width = style.height = "100%";
-
-            // FIX: "Sandbox Detected" & Permission Issues in Cloak
-            this.configureIframePermissions(iframe);
-
-            const pLink = localStorage.getItem("pLink") || "https://google.com";
-
-            const script = doc.createElement("script");
-            script.textContent = `
-                window.onbeforeunload = function (event) {
-                    const confirmationMessage = 'Leave Site?';
-                    (event || window.event).returnValue = confirmationMessage;
-                    return confirmationMessage;
-                };
-            `;
-            doc.head.appendChild(link);
-            doc.body.appendChild(iframe);
-            doc.head.appendChild(script);
-
-            console.log('[BROWSER] ✅ Cloak setup complete, redirecting original tab...');
-            location.replace(pLink);
-        }
-    }
-
     // Disguise Methods
     applyDisguise() {
         const selected = this.disguiseSelect.value;
         const disguise = this.disguises[selected];
 
         if (disguise) {
-            document.title = disguise.title;
-            this.updateFaviconLink(disguise.favicon);
+            this.setDisguise(disguise.title, disguise.favicon);
             localStorage.setItem('tab_disguise', selected);
             console.log('[BROWSER] Applied disguise:', selected);
         }
@@ -2187,10 +1989,9 @@ class Browser {
 
     resetDisguise() {
         const defaultDisguise = this.disguises['default'];
-        document.title = defaultDisguise.title;
-        this.updateFaviconLink(defaultDisguise.favicon);
+        this.setDisguise(defaultDisguise.title, defaultDisguise.favicon);
         localStorage.setItem('tab_disguise', 'default');
-        this.disguiseSelect.value = 'default';
+        if (this.disguiseSelect) this.disguiseSelect.value = 'default';
         console.log('[BROWSER] Reset to default disguise');
     }
 
@@ -2199,8 +2000,28 @@ class Browser {
         const disguise = this.disguises[saved];
 
         if (disguise) {
-            document.title = disguise.title;
-            this.updateFaviconLink(disguise.favicon);
+            this.setDisguise(disguise.title, disguise.favicon);
+        }
+    }
+
+    setDisguise(title, favicon) {
+        document.title = title;
+        this.updateFaviconLink(favicon);
+
+        // Sync with parent for about:blank cloak
+        if (window.self !== window.top) {
+            try {
+                window.top.document.title = title;
+                let topLink = window.top.document.querySelector("link[rel~='icon']");
+                if (!topLink) {
+                    topLink = window.top.document.createElement('link');
+                    topLink.rel = 'icon';
+                    window.top.document.head.appendChild(topLink);
+                }
+                topLink.href = favicon;
+            } catch (e) {
+                // Cross-origin restriction, ignore
+            }
         }
     }
 

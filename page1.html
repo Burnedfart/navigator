@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigator | Sleek & Secure Browsing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --window-bg: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --accent-color: #202124;
+            --border-color: #c9ccd1;
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            background: rgba(240, 242, 245, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 2.25rem;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .hero {
+            margin-top: 15vh;
+            text-align: center;
+            max-width: 800px;
+            padding: 2rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
+
+        .cta-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .cta-button {
+            background-color: var(--accent-color);
+            color: #fff;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            animation: buttonGlow 3s infinite ease-in-out;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            background-color: #000;
+            animation: none;
+            /* Stop pulsing on hover for a solid feel */
+        }
+
+        @keyframes buttonGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(32, 33, 36, 0.3);
+            }
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .feature-card {
+            background: var(--window-bg);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .hero {
+                margin-top: 10vh;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">NAVIGATOR</div>
+    </header>
+
+    <main class="hero">
+        <h1>Navigate the web without limits.</h1>
+        <p>A high-performance, feature-rich web browser designed for speed and endless customization.
+        </p>
+        <div class="cta-container">
+            <a href="#" class="cta-button" onclick="launch(); return false;">Access Navigator</a>
+        </div>
+    </main>
+
+    <section class="features">
+        <div class="feature-card">
+            <h3>Fast Private Browsing</h3>
+            <p>Navigator is built on Scramjet & BareMux for unmatched speed and broad compatibility with modern web
+                standards.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Desktop-Class UI</h3>
+            <p>Manage multiple sessions with our dynamic tab system. Complete with Back, Forward, and Home controls.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Stealth & Security</h3>
+            <p>Advanced about:blank cloaking and tab disguisers to keep your browsing private and secure.</p>
+        </div>
+    </section>
+
+    <footer>
+        &copy; 2026 Navigator Project. Built for privacy.
+    </footer>
+
+    <script>
+        function launch() {
+            const popup = window.open("about:blank", "_blank");
+            if (!popup || popup.closed) {
+                alert("Window blocked. Please allow popups for this site.");
+                return;
+            }
+
+            const doc = popup.document;
+            const iframe = doc.createElement("iframe");
+            const style = iframe.style;
+            const link = doc.createElement("link");
+
+            doc.title = "Home - Google Drive";
+            link.rel = "icon";
+            link.href = "https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png";
+
+            iframe.src = new URL('index.html', window.location.href).href;
+            style.position = "fixed";
+            style.top = style.bottom = style.left = style.right = "0";
+            style.border = style.outline = "none";
+            style.width = style.height = "100%";
+
+            doc.head.appendChild(link);
+            doc.body.appendChild(iframe);
+
+            // Redirect current page to something safe
+            window.location.replace("https://google.com");
+        }
+
+        // Smooth entrance for features on scroll
+        const cards = document.querySelectorAll('.feature-card');
+        const observerOptions = { threshold: 0.1 };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }, index * 100);
+                }
+            });
+        }, observerOptions);
+
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease-out';
+            observer.observe(card);
+        });
+    </script>
+</body>
+
+
+</html>
