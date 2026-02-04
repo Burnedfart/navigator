@@ -142,14 +142,7 @@ class Browser {
                     <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>`,
                 items: [
-                    { name: 'Google Drive', url: 'https://drive.google.com', icon: 'GD' },
-                    { name: 'Gmail', url: 'https://mail.google.com', icon: 'GM' },
-                    { name: 'Google Docs', url: 'https://docs.google.com', icon: 'GD' },
-                    { name: 'Google Classroom', url: 'https://classroom.google.com', icon: 'GC' },
-                    { name: 'Discord', url: 'https://discord.com', icon: 'DC' },
-                    { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
-                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'AI' },
-                    { name: 'Notion', url: 'https://notion.so', icon: 'NT' }
+                    { name: 'GitHub', url: 'https://github.com', icon: 'GH' }
                 ]
             },
             games: {
@@ -163,9 +156,8 @@ class Browser {
                 </svg>`,
                 items: [
                     { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-                    { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' },
-                    { name: 'Now.gg', url: 'https://now.gg', icon: 'NG' },
-                    { name: 'Krunker', url: 'https://krunker.io', icon: 'KR' }
+                    { name: 'GeForce NOW', url: 'https://geforcenow.com', icon: 'GF' },
+                    { name: 'Now.gg', url: 'https://now.gg', icon: 'NG' }
                 ]
             },
             streaming: {
@@ -175,12 +167,8 @@ class Browser {
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                 </svg>`,
                 items: [
-                    { name: 'SpenFlix (Movies)', url: 'https://spenflix.ru', icon: 'SF' },
-                    { name: 'YouTube', url: 'https://youtube.com', icon: 'YT' },
-                    { name: 'Twitch', url: 'https://twitch.tv', icon: 'TW' },
-                    { name: 'Netflix', url: 'https://netflix.com', icon: 'NF' },
-                    { name: 'Disney+', url: 'https://disneyplus.com', icon: 'D+' },
-                    { name: 'Hulu', url: 'https://hulu.com', icon: 'HL' }
+                    { name: 'SpenFlix (Movies)', url: 'https://watch.spencerdevs.xyz', icon: 'SF' },
+                    { name: 'SpenFlix (Alternate)', url: 'https://spenflix.ru', icon: 'SF' },
                 ]
             }
         };
