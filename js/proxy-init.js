@@ -69,58 +69,9 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         });
         console.log('✅ [SW] Registered:', registration.scope);
 
-        // Handle Service Worker Updates
-        const showUpdatePrompt = (waitingWorker) => {
-            const modal = document.getElementById('update-modal');
-            const updateBtn = document.getElementById('update-btn');
-            const closeBtn = document.getElementById('update-close-btn');
-
-            if (modal && updateBtn) {
-                modal.classList.remove('hidden');
-                updateBtn.onclick = () => {
-                    waitingWorker.postMessage('skipWaiting');
-                    modal.classList.add('hidden');
-                };
-                if (closeBtn) {
-                    closeBtn.onclick = () => modal.classList.add('hidden');
-                }
-            }
-        };
-
-        const getWorkerVersion = (worker) => {
-            return new Promise((resolve) => {
-                const channel = new MessageChannel();
-                channel.port1.onmessage = (event) => resolve(event.data);
-                setTimeout(() => resolve(null), 1000);
-                worker.postMessage({ type: 'get_version' }, [channel.port2]);
-            });
-        };
-
         const handleUpdateFound = async (waitingWorker) => {
-            // If no controller, this is fresh install, no prompt needed
-            if (!navigator.serviceWorker.controller) return;
-
-            try {
-                const currentVer = await getWorkerVersion(navigator.serviceWorker.controller);
-                const newVer = await getWorkerVersion(waitingWorker);
-
-                console.log(`[SW] Version check: Current=${currentVer}, New=${newVer}`);
-
-                if (!currentVer) {
-                    console.log('[SW] 🔄 Legacy worker detected (no version). Skipping prompt to avoid annoyance.');
-                    return;
-                }
-
-                if (currentVer && newVer && currentVer === newVer) {
-                    console.log('[SW] 🔄 Versions match. Ignoring logicless update.');
-                    return;
-                }
-            } catch (e) {
-                console.warn('[SW] Version check failed, defaulting to prompt:', e);
-            }
-
-            console.log('🔄 [SW] New version available, prompting user...');
-            showUpdatePrompt(waitingWorker);
+            console.log('🔄 [SW] New version available, applying automatically...');
+            waitingWorker.postMessage('skipWaiting');
         };
 
         // 1. If there's already a waiting worker, check it
