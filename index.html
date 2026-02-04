@@ -14,16 +14,43 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/browser.css?v=1055">
 
+    <meta name="theme-color" content="#ffffff">
+
     <script>
         (function () {
             try {
                 const theme = localStorage.getItem('browser_theme') || 'default';
+                const colors = {
+                    'ink': '#0d0d0d',
+                    'coffee': '#2c1e1a',
+                    'nebula': '#0b071a',
+                    'raspberry': '#2d333b',
+                    'mint': '#24292e',
+                    'default': '#f0f2f5'
+                };
+
+                const bg = colors[theme] || colors['default'];
+
+                // 1. Immediately set background to mask FOUC
+                document.documentElement.style.backgroundColor = bg;
+
+                // 2. Set Data Attribute for CSS
                 document.documentElement.setAttribute('data-theme', theme);
+
+                // 3. Update Browser UI Color (Meta Tag)
+                const meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.content = bg;
+
+                // 4. Handle Custom Themes
                 if (theme === 'custom') {
                     const data = JSON.parse(localStorage.getItem('custom_theme_data') || '{}');
                     const vars = data.variables || {};
                     for (const [name, value] of Object.entries(vars)) {
                         document.documentElement.style.setProperty(name, value);
+                        if (name === '--bg-color' || name === '--window-bg') {
+                            document.documentElement.style.backgroundColor = value;
+                            if (meta) meta.content = value;
+                        }
                     }
                 }
             } catch (e) { }
