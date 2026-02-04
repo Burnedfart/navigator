@@ -22,13 +22,6 @@ class Browser {
         this.sessionRestoreBtn = document.getElementById('session-restore-btn');
         this.sessionDiscardBtn = document.getElementById('session-discard-btn');
 
-        // Modal Elements
-        this.modal = document.getElementById('custom-app-modal');
-        this.appNameInput = document.getElementById('app-name');
-        this.appUrlInput = document.getElementById('app-url');
-        this.btnAddApp = document.getElementById('btn-add-app');
-        this.btnCancelApp = document.getElementById('btn-cancel-app');
-
         // Settings Elements
         this.settingsBtn = document.getElementById('settings-btn');
         this.settingsModal = document.getElementById('settings-modal');
@@ -138,7 +131,62 @@ class Browser {
             }
         };
 
+        // Category System for Home Page
+        this.categories = {
+            apps: {
+                name: 'Apps',
+                icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>`,
+                items: [
+                    { name: 'Google Drive', url: 'https://drive.google.com', icon: 'GD' },
+                    { name: 'Gmail', url: 'https://mail.google.com', icon: 'GM' },
+                    { name: 'Google Docs', url: 'https://docs.google.com', icon: 'GD' },
+                    { name: 'Google Classroom', url: 'https://classroom.google.com', icon: 'GC' },
+                    { name: 'Discord', url: 'https://discord.com', icon: 'DC' },
+                    { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
+                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'AI' },
+                    { name: 'Notion', url: 'https://notion.so', icon: 'NT' }
+                ]
+            },
+            games: {
+                name: 'Games',
+                icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="6" y1="12" x2="10" y2="12"></line>
+                    <line x1="8" y1="10" x2="8" y2="14"></line>
+                    <line x1="15" y1="13" x2="15.01" y2="13"></line>
+                    <line x1="18" y1="11" x2="18.01" y2="11"></line>
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                </svg>`,
+                items: [
+                    { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
+                    { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' },
+                    { name: 'Now.gg', url: 'https://now.gg', icon: 'NG' },
+                    { name: 'Krunker', url: 'https://krunker.io', icon: 'KR' }
+                ]
+            },
+            streaming: {
+                name: 'Streaming',
+                icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>`,
+                items: [
+                    { name: 'SpenFlix (Movies)', url: 'https://spenflix.ru', icon: 'SF' },
+                    { name: 'YouTube', url: 'https://youtube.com', icon: 'YT' },
+                    { name: 'Twitch', url: 'https://twitch.tv', icon: 'TW' },
+                    { name: 'Netflix', url: 'https://netflix.com', icon: 'NF' },
+                    { name: 'Disney+', url: 'https://disneyplus.com', icon: 'D+' },
+                    { name: 'Hulu', url: 'https://hulu.com', icon: 'HL' }
+                ]
+            }
+        };
+
         this.navBtns = {
+
             back: document.getElementById('nav-back'),
             forward: document.getElementById('nav-forward'),
             refresh: document.getElementById('nav-refresh'),
@@ -883,22 +931,7 @@ class Browser {
             });
         }
 
-        // Modal Events
-        this.btnAddApp.addEventListener('click', () => this.addCustomApp());
-        this.btnCancelApp.addEventListener('click', () => this.closeModal());
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) this.closeModal();
-        });
-
-        // Modal Inputs Enter key
-        const handleModalEnter = (e) => {
-            if (e.key === 'Enter') this.addCustomApp();
-            if (e.key === 'Escape') this.closeModal();
-        };
-        this.appNameInput.addEventListener('keydown', handleModalEnter);
-        this.appUrlInput.addEventListener('keydown', handleModalEnter);
-
-        // Settings Events
+        // Settings Modal Events
         if (this.settingsBtn) {
             this.settingsBtn.addEventListener('click', () => this.openSettings());
         }
@@ -1437,11 +1470,8 @@ class Browser {
     renderHomePage(tab) {
         if (!tab.homeElement) return;
 
-        // All pins are now stored in custom_apps to allow total customization
-        const allPins = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-
-        // [PERFORMANCE] Use template string instead of DOM manipulation
-        let gridHtml = `
+        // Render category buttons instead of pinned apps
+        let homeHtml = `
         <div class="home-branding">
             <h1 class="brand-title">Navigator</h1>
             <p class="brand-subtitle">by the scholar squad</p>
@@ -1449,137 +1479,126 @@ class Browser {
         <div class="home-grid">
     `;
 
-        // Render all pins (with Delete Button)
-        allPins.forEach((app, index) => {
-            let iconContent = app.icon || app.name.charAt(0).toUpperCase();
-            gridHtml += `
-                <div class="grid-item" data-url="${app.url}" data-index="${index}">
-                    <button class="delete-pin" title="Delete Pin">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                    </button>
-                    <div class="item-icon">${iconContent}</div>
-                    <div class="item-title">${app.name}</div>
+        // Render category buttons
+        Object.keys(this.categories).forEach(categoryKey => {
+            const category = this.categories[categoryKey];
+            homeHtml += `
+                <div class="category-button" data-category="${categoryKey}">
+                    <div class="category-icon">${category.icon}</div>
+                    <div class="category-title">${category.name}</div>
                 </div>
             `;
         });
 
-        // Add "Add App" Button
-        gridHtml += `
-            <div class="grid-item add-app-btn" id="add-app-trigger-${tab.id}">
-                <div class="item-icon">+</div>
-                <div class="item-title">Add Pin</div>
+        homeHtml += `</div>`;
+
+        // [PERFORMANCE] Single DOM update
+        tab.homeElement.innerHTML = homeHtml;
+
+        // Attach Event Listeners for Category Buttons
+        tab.homeElement.querySelectorAll('.category-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const categoryKey = btn.getAttribute('data-category');
+                this.openCategoryMenu(categoryKey);
+            });
+        });
+    }
+
+    openCategoryMenu(categoryKey) {
+        const category = this.categories[categoryKey];
+        if (!category) return;
+
+        // Create modal overlay if it doesn't exist
+        let overlay = document.getElementById('category-menu-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'category-menu-overlay';
+            overlay.className = 'category-menu-overlay';
+            document.body.appendChild(overlay);
+        }
+
+        // Build menu HTML with search bar and items
+        let menuHtml = `
+            <div class="category-menu">
+                <div class="category-menu-header">
+                    <h2>${category.name}</h2>
+                    <button class="category-menu-close" title="Close">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="category-menu-search">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" class="category-search-input" placeholder="Search ${category.name.toLowerCase()}..." />
+                </div>
+                <div class="category-menu-grid">
+        `;
+
+        // Render all items
+        category.items.forEach((item, index) => {
+            menuHtml += `
+                <div class="category-menu-item" data-url="${item.url}" data-name="${item.name.toLowerCase()}">
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-title">${item.name}</div>
+                </div>
+            `;
+        });
+
+        menuHtml += `
+                </div>
             </div>
         `;
 
-        gridHtml += `</div>`;
+        overlay.innerHTML = menuHtml;
+        overlay.classList.remove('hidden');
 
-        // [PERFORMANCE] Single DOM update instead of multiple
-        tab.homeElement.innerHTML = gridHtml;
+        // Attach Event Listeners
+        const closeBtn = overlay.querySelector('.category-menu-close');
+        closeBtn.addEventListener('click', () => this.closeCategoryMenu());
 
-        // Attach Event Listeners for Navigation - use event delegation for better performance
-        tab.homeElement.querySelectorAll('.grid-item:not(.add-app-btn)').forEach(item => {
-            item.addEventListener('click', (e) => {
-                // Ignore if clicking the delete button
-                if (e.target.closest('.delete-pin')) return;
+        // Close on backdrop click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) this.closeCategoryMenu();
+        });
 
+        // Search functionality
+        const searchInput = overlay.querySelector('.category-search-input');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const items = overlay.querySelectorAll('.category-menu-item');
+            items.forEach(item => {
+                const itemName = item.getAttribute('data-name');
+                if (itemName.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // Item click handlers
+        overlay.querySelectorAll('.category-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
                 const url = item.getAttribute('data-url');
-                this.navigate(url);
+                this.createTab(url);
+                this.closeCategoryMenu();
             });
         });
 
-        // Attach Event Listeners for Deletion
-        tab.homeElement.querySelectorAll('.delete-pin').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const index = parseInt(btn.closest('.grid-item').getAttribute('data-index'));
-                this.deletePin(index);
-            });
-        });
+        // Focus search input
+        searchInput.focus();
+    }
 
-        // Attach Event Listener for Add App
-        const addBtn = tab.homeElement.querySelector(`#add-app-trigger-${tab.id}`);
-        if (addBtn) {
-            addBtn.addEventListener('click', () => {
-                this.openModal();
-            });
+    closeCategoryMenu() {
+        const overlay = document.getElementById('category-menu-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
         }
-    }
-
-    deletePin(index) {
-        const apps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-        apps.splice(index, 1);
-        localStorage.setItem('custom_apps', JSON.stringify(apps));
-
-        // Re-render home page for all tabs on home
-        this.tabs.forEach(tab => {
-            if (tab.url === 'browser://home') {
-                this.renderHomePage(tab);
-            }
-        });
-    }
-
-    openModal() {
-        this.modal.classList.remove('hidden');
-        this.appNameInput.value = '';
-        this.appUrlInput.value = '';
-        this.appNameInput.focus();
-    }
-
-    closeModal() {
-        this.modal.classList.add('hidden');
-    }
-
-    addCustomApp() {
-        const name = this.appNameInput.value.trim();
-        let url = this.appUrlInput.value.trim();
-
-        if (!name || !url) {
-            alert('Please enter both a name and URL');
-            return;
-        }
-
-        // [SECURITY] Sanitize the name to prevent XSS
-        const safeName = this.sanitizeHTML(name);
-
-        try {
-            // Basic URL validation/fix
-            if (!url.startsWith('http')) {
-                url = 'https://' + url;
-            }
-
-            // [SECURITY] Validate URL is actually valid
-            const urlObj = new URL(url);
-
-            // [SECURITY] Only allow http/https protocols
-            if (!['http:', 'https:'].includes(urlObj.protocol)) {
-                alert('Invalid URL: Only HTTP and HTTPS URLs are allowed');
-                return;
-            }
-        } catch (e) {
-            alert('Invalid URL format. Please enter a valid website address.');
-            return;
-        }
-
-        const customApps = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-
-        // Store the sanitized name
-        customApps.push({ name: safeName, url });
-        localStorage.setItem('custom_apps', JSON.stringify(customApps));
-
-        this.closeModal();
-
-        // Re-render home page for all tabs that are currently on home
-        this.tabs.forEach(t => {
-            if (t.url === 'browser://home') {
-                this.renderHomePage(t);
-            }
-        });
     }
 
     switchTab(id) {
