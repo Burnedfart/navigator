@@ -34,6 +34,19 @@ window.StorageHealth = {
     async validateScramjetDB() {
         const requiredStores = ['config', 'cookies', 'publicSuffixList', 'redirectTrackers', 'referrerPolicies'];
 
+        // [PROACTIVE] Check if database even exists before opening it to avoid creating an empty one
+        if (typeof indexedDB.databases === 'function') {
+            try {
+                const dbs = await indexedDB.databases();
+                const exists = dbs.some(db => db.name === '$scramjet');
+                if (!exists) {
+                    return { valid: true, exists: false, missing: [], stores: 0 };
+                }
+            } catch (e) {
+                console.warn('⚠️ [STORAGE] Databases check failed, falling back to open check');
+            }
+        }
+
         return new Promise((resolve) => {
             try {
                 const openReq = indexedDB.open('$scramjet');
@@ -57,9 +70,12 @@ window.StorageHealth = {
                 };
 
                 openReq.onupgradeneeded = (event) => {
-                    // Database doesn't exist - this is a CLEAN state, so it's VALID
+                    // Database was missing - DO NOT just close it (it leaves an empty file)
+                    // We must delete it immediately so Scramjet can create its own version
                     const db = event.target.result;
                     db.close();
+                    indexedDB.deleteDatabase('$scramjet');
+
                     resolve({
                         valid: true,
                         missing: [],

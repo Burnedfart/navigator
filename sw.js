@@ -32,8 +32,8 @@ Object.setPrototypeOf(self.Response, OriginalResponse);
 self.Response.prototype = OriginalResponse.prototype;
 
 // Bump to force cache refresh
-const VERSION = 'v59';
-const CACHE_NAME = 'scramjet-proxy-cache-v59';
+const VERSION = 'v60';
+const CACHE_NAME = 'scramjet-proxy-cache-v60';
 
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
