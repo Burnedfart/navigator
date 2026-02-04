@@ -47,7 +47,7 @@
 .viewports-container {
     flex: 1;
     position: relative;
-    background-color: #fff;
+    background-color: var(--window-bg);
     overflow: hidden;
 }
 
