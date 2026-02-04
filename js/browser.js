@@ -37,6 +37,9 @@ class Browser {
             "eW91amF2"
         ];
 
+        // Blocked Sites List (Loaded from JSON)
+        this.blockedSites = [];
+
         // DOM Elements
         this.tabsContainer = document.getElementById('tabs-container');
         this.viewportsContainer = document.getElementById('viewports-container');
@@ -44,6 +47,7 @@ class Browser {
         this.newTabBtn = document.getElementById('new-tab-btn');
         this.proxyStatus = document.getElementById('proxy-status');
         this.logo = document.querySelector('.logo-container .app-logo-img');
+        this.logoContainer = document.getElementById('browser-logo');
         this.bookmarkBtn = document.getElementById('bookmark-btn');
         this.bookmarksBar = document.getElementById('bookmarks-bar');
         this.sessionModal = document.getElementById('session-restore-modal');
@@ -392,6 +396,23 @@ class Browser {
         iframeWindow.__sandboxGuardInstalled = true;
     }
 
+    async loadBlockedSites() {
+        try {
+            const response = await fetch('assets/blocked-sites.json');
+            if (!response.ok) throw new Error('Failed to load blocked sites');
+            const data = await response.json();
+            if (data && Array.isArray(data.blocked_sites)) {
+                // Sanitize: Strip protocol and trailing slashes for better matching
+                this.blockedSites = data.blocked_sites.map(site =>
+                    site.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                );
+                console.log(`[BROWSER] Loaded ${this.blockedSites.length} blocked sites.`);
+            }
+        } catch (e) {
+            console.warn('[BROWSER] Could not load blocked sites list:', e);
+        }
+    }
+
     async init() {
         if (window.self !== window.top) {
             let isAllowedFrame = false;
@@ -426,6 +447,7 @@ class Browser {
         this.loadTheme();
         this.loadDisguise();
         this.loadPerformanceSettings();
+        await this.loadBlockedSites();
         this.loadBookmarks();
         this.updateProxyStatus('loading');
 
@@ -863,6 +885,14 @@ class Browser {
             e.stopPropagation();
             this.navigate('browser://home');
         });
+
+        if (this.logoContainer) {
+            this.logoContainer.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.navigate('browser://home');
+            });
+        }
 
         // Modal Events
         this.btnAddApp.addEventListener('click', () => this.addCustomApp());
@@ -1306,6 +1336,16 @@ class Browser {
                     return true;
                 }
             }
+
+            // Check against blocked sites list
+            if (this.blockedSites && this.blockedSites.length > 0) {
+                for (const site of this.blockedSites) {
+                    if (fullString.includes(site)) {
+                        return true;
+                    }
+                }
+            }
+
             return false;
         } catch (e) {
             // If invalid URL, allow logic elsewhere to handle or block if it looks suspicious? 
@@ -1764,12 +1804,26 @@ class Browser {
 
         // UI Updates
         this.updateBookmarkButtonState();
-        tab.title = new URL(url).hostname || 'Browse';
-        tab.element.querySelector('.tab-title').textContent = tab.title;
+
+        if (url === 'browser://home') {
+            tab.title = 'New Tab';
+            this.omnibox.value = '';
+            this.omnibox.placeholder = 'Search or enter address';
+        } else {
+            try {
+                tab.title = new URL(url).hostname || 'Browse';
+            } catch (e) {
+                tab.title = 'Browse';
+            }
+            this.omnibox.value = url;
+            this.omnibox.placeholder = 'Search or enter address';
+        }
+
+        const tabTitleEl = tab.element.querySelector('.tab-title');
+        if (tabTitleEl) tabTitleEl.textContent = tab.title;
+
         // Update Favicon
         this.fetchFavicon(tab, url);
-
-        this.omnibox.value = url;
 
         if (url === 'browser://home') {
             if (tab.iframe) tab.iframe.classList.remove('active');
@@ -1782,6 +1836,17 @@ class Browser {
             if (!tab.scramjetWrapper || !tab.iframe) {
                 if (window.scramjet) {
                     tab.scramjetWrapper = window.scramjet.createFrame();
+
+                    // [SECURITY] Intercept frame navigation
+                    const originalGo = tab.scramjetWrapper.go.bind(tab.scramjetWrapper);
+                    tab.scramjetWrapper.go = async (url) => {
+                        if (this.isUrlBlocked(url)) {
+                            console.warn('[BROWSER] 🛑 Blocked navigation prevented in wrapper:', url);
+                            this.navigate('browser://home');
+                            return;
+                        }
+                        return originalGo(url);
+                    };
                     tab.iframe = tab.scramjetWrapper.frame;
                     tab.iframe.classList.add('browser-viewport');
                     tab.iframe.classList.add('active');
@@ -1839,6 +1904,15 @@ class Browser {
                                         }
                                     }
 
+                                    // [SECURITY] Pre-emptive block on click
+                                    if (this.isUrlBlocked(url)) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.warn('[BROWSER] 🛑 Blocked link click intercepted:', url);
+                                        this.navigate('browser://home');
+                                        return false;
+                                    }
+
                                     // PREVENT ESCAPES
                                     const isNewTab = target === '_blank' || target === '_top' || target === '_parent';
                                     const isSpecialClick = e.ctrlKey || e.metaKey || e.button === 1;
@@ -1869,6 +1943,7 @@ class Browser {
                     // Attach overrides on load and periodically
                     tab.iframe.addEventListener('load', () => {
                         if (this.activeTabId === tab.id) this.setLoading(false);
+                        tab.iframe.style.opacity = '1';
                         this.installContentIframeGuards(tab);
                         attachWindowOpenOverride();
                     });
@@ -1884,6 +1959,9 @@ class Browser {
 
             tab.iframe.classList.add('active');
 
+            // [UX] Hide content immediately to prevent flash of old page
+            tab.iframe.style.opacity = '0';
+
             if (tab.scramjetWrapper) {
                 try {
                     await tab.scramjetWrapper.go(url);
@@ -1892,6 +1970,7 @@ class Browser {
                 } catch (e) {
                     console.error("Navigation failed", e);
                     this.setLoading(false);
+                    tab.iframe.style.opacity = '1';
                 }
             }
         }
@@ -1918,20 +1997,19 @@ class Browser {
         const iconEl = tab.element.querySelector('.tab-favicon');
         if (!iconEl) return;
 
+        if (!src || src === '' || tab.url === 'browser://home') {
+            iconEl.style.display = 'none';
+            return;
+        }
+
         const fallback = 'assets/logo.png';
         iconEl.style.display = 'block';
-
-        if (src && src !== '') {
-            iconEl.src = src;
-            iconEl.classList.remove('use-filter');
-            iconEl.onerror = () => {
-                iconEl.src = fallback;
-                iconEl.classList.add('use-filter');
-            };
-        } else {
+        iconEl.src = src;
+        iconEl.classList.remove('use-filter');
+        iconEl.onerror = () => {
             iconEl.src = fallback;
             iconEl.classList.add('use-filter');
-        }
+        };
     }
 
     async fetchFavicon(tab, url) {
@@ -1954,6 +2032,14 @@ class Browser {
             if (rawUrl.includes('/service/')) {
                 const realUrl = decodeURIComponent(rawUrl.split('/service/')[1]);
                 if (realUrl && realUrl !== tab.url && !realUrl.endsWith('...')) {
+
+                    // [SECURITY] Check if redirected to blocked site
+                    if (this.isUrlBlocked(realUrl)) {
+                        console.warn('[BROWSER] 🛡️ Blocked site detected in iframe:', realUrl);
+                        this.navigate('browser://home');
+                        return;
+                    }
+
                     console.log('[BROWSER] 🔄 Syncing UI to iframe location:', realUrl);
                     tab.url = realUrl;
                     this.omnibox.value = realUrl;
