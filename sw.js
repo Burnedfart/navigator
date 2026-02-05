@@ -208,20 +208,30 @@ async function handleRequest(event) {
 
         // Standard network request for app files (Network-First)
         if (isStaticResource(url)) {
-            try {
-                const response = await fetch(event.request);
+            const isLocalCore = url.startsWith(self.location.origin) && (url.includes('.js') || url.includes('.css'));
 
-                // If it's a valid response, update the cache
+            try {
+                // If it's a local .js or .css file, force a reload from the server
+                const fetchOptions = isLocalCore ? { cache: 'reload' } : {};
+                const response = await fetch(event.request, fetchOptions);
+
+                // If it's a valid response, update the cache (unless it's local core code we never want to cache)
                 if (response.ok && response.type !== 'opaque') {
-                    const modifiedResponse = normalizeResponseHeaders(response, false);
-                    const cache = await caches.open(CACHE_NAME);
-                    cache.put(event.request, modifiedResponse.clone());
-                    return modifiedResponse;
+                    if (!isLocalCore) {
+                        const modifiedResponse = normalizeResponseHeaders(response, false);
+                        const cache = await caches.open(CACHE_NAME);
+                        cache.put(event.request, modifiedResponse.clone());
+                        return modifiedResponse;
+                    }
+                    return normalizeResponseHeaders(response, false);
                 }
 
                 return response;
             } catch (err) {
-                // Network failed, try to serve from cache
+                // Network failed
+                if (isLocalCore) throw err; // Don't serve stale JS/CSS from cache
+
+                // Otherwise try to serve from cache for other assets
                 const cache = await caches.open(CACHE_NAME);
                 const cachedResponse = await cache.match(event.request);
                 if (cachedResponse) {
