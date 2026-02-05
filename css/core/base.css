@@ -16,6 +16,28 @@ body {
     height: 100%;
 }
 
+/* UI Containers */
+#proxy-ui,
+#launcher-ui {
+    width: 100%;
+    height: 100vh;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#proxy-ui:not(.hidden) {
+    display: flex;
+}
+
+#launcher-ui:not(.hidden) {
+    display: flex;
+}
+
+.hidden {
+    display: none !important;
+}
+
 /* Logo & Branding */
 .logo-container {
     width: 34px;

@@ -517,8 +517,6 @@
 
             if (isEmbedded) {
                 // Show launcher, hide proxy
-                launcherUI.style.display = 'flex';
-                proxyUI.style.display = 'none';
                 launcherUI.classList.remove('hidden');
                 proxyUI.classList.add('hidden');
 
@@ -530,8 +528,9 @@
                 // Add intersection observer for feature cards animation
                 document.addEventListener('DOMContentLoaded', () => {
                     const cards = document.querySelectorAll('.feature-card');
-                    const observerOptions = { threshold: 0.1 };
+                    if (cards.length === 0) return;
 
+                    const observerOptions = { threshold: 0.1 };
                     const observer = new IntersectionObserver((entries) => {
                         entries.forEach((entry, index) => {
                             if (entry.isIntersecting) {
@@ -552,8 +551,6 @@
                 });
             } else {
                 // Show proxy, hide launcher
-                proxyUI.style.display = 'block';
-                launcherUI.style.display = 'none';
                 proxyUI.classList.remove('hidden');
                 launcherUI.classList.add('hidden');
             }
