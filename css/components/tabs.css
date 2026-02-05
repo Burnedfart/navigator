@@ -42,6 +42,20 @@
     margin: 0 2px;
 }
 
+.tab.dragging {
+    opacity: 0.65;
+    transform: scale(0.98);
+    z-index: 2;
+}
+
+.tabs-container.dragging {
+    cursor: grabbing;
+}
+
+.tabs-container.dragging .tab {
+    cursor: grabbing;
+}
+
 /* Tab Separator - Only between inactive tabs */
 .tab:not(.active):not(:last-child)::after {
     content: '';

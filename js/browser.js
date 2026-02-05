@@ -740,6 +740,9 @@ class Browser {
 
         this.newTabBtn.addEventListener('click', () => this.createTab());
 
+        window.addEventListener('pointerup', (e) => this.handleTabPointerUp(e));
+        window.addEventListener('pointercancel', (e) => this.handleTabPointerUp(e));
+
         if (this.bookmarkBtn) {
             this.bookmarkBtn.addEventListener('click', () => this.handleBookmarkClick());
         }
@@ -1192,6 +1195,150 @@ class Browser {
         }
     }
 
+    attachTabDragHandlers(tab) {
+        if (!tab || !tab.element) return;
+
+        const tabEl = tab.element;
+
+        tabEl.addEventListener('pointerdown', (e) => this.handleTabPointerDown(e, tab));
+        tabEl.addEventListener('pointermove', (e) => this.handleTabPointerMove(e));
+        tabEl.addEventListener('pointerup', (e) => this.handleTabPointerUp(e));
+        tabEl.addEventListener('pointercancel', (e) => this.handleTabPointerUp(e));
+    }
+
+    handleTabPointerDown(e, tab) {
+        if (!tab || !tab.element) return;
+        if (e.button !== 0 && e.pointerType !== 'touch') return;
+        if (e.target.closest('.tab-close')) return;
+
+        this.suppressTabClick = false;
+        this.tabDragState = {
+            tabId: tab.id,
+            element: tab.element,
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            dragging: false
+        };
+
+        try {
+            tab.element.setPointerCapture(e.pointerId);
+        } catch (err) {
+            // Pointer capture may be unsupported in some contexts
+        }
+    }
+
+    handleTabPointerMove(e) {
+        const state = this.tabDragState;
+        if (!state || state.pointerId !== e.pointerId) return;
+
+        const dx = e.clientX - state.startX;
+        const dy = e.clientY - state.startY;
+        const distance = Math.hypot(dx, dy);
+
+        if (!state.dragging) {
+            if (distance < this.tabDragThreshold) return;
+            state.dragging = true;
+            this.suppressTabClick = true;
+            state.element.classList.add('dragging');
+            if (this.tabsContainer) this.tabsContainer.classList.add('dragging');
+            this.hideTabTooltip();
+        }
+
+        if (state.dragging) {
+            e.preventDefault();
+            this.reorderTabByPointer(e.clientX, state.element);
+            this.autoScrollTabsContainer(e.clientX);
+        }
+    }
+
+    handleTabPointerUp(e) {
+        const state = this.tabDragState;
+        if (!state || state.pointerId !== e.pointerId) return;
+
+        try {
+            state.element.releasePointerCapture(e.pointerId);
+        } catch (err) {
+            // Ignore if pointer capture wasn't active
+        }
+
+        if (state.dragging) {
+            state.element.classList.remove('dragging');
+            if (this.tabsContainer) this.tabsContainer.classList.remove('dragging');
+            this.updateTabOrderFromDOM();
+            this.suppressTabClick = true;
+            setTimeout(() => {
+                this.suppressTabClick = false;
+            }, 0);
+        }
+
+        this.tabDragState = null;
+    }
+
+    reorderTabByPointer(clientX, draggingEl) {
+        if (!this.tabsContainer || !draggingEl) return;
+
+        const insertBeforeEl = this.getTabInsertBefore(clientX, draggingEl);
+        if (insertBeforeEl) {
+            this.tabsContainer.insertBefore(draggingEl, insertBeforeEl);
+        } else if (this.newTabBtn) {
+            this.tabsContainer.insertBefore(draggingEl, this.newTabBtn);
+        }
+    }
+
+    getTabInsertBefore(clientX, draggingEl) {
+        const tabs = Array.from(this.tabsContainer.querySelectorAll('.tab'));
+        let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+
+        tabs.forEach(tab => {
+            if (tab === draggingEl) return;
+            const rect = tab.getBoundingClientRect();
+            const offset = clientX - (rect.left + rect.width / 2);
+            if (offset < 0 && offset > closest.offset) {
+                closest = { offset, element: tab };
+            }
+        });
+
+        return closest.element;
+    }
+
+    updateTabOrderFromDOM() {
+        if (!this.tabsContainer) return;
+
+        const orderedIds = Array.from(this.tabsContainer.querySelectorAll('.tab'))
+            .map(el => Number(el.dataset.id))
+            .filter(id => !Number.isNaN(id));
+
+        if (orderedIds.length === 0) return;
+
+        const currentIds = this.tabs.map(tab => tab.id);
+        const sameOrder = orderedIds.length === currentIds.length &&
+            orderedIds.every((id, idx) => id === currentIds[idx]);
+
+        if (sameOrder) return;
+
+        const orderMap = new Map(orderedIds.map((id, idx) => [id, idx]));
+        this.tabs.sort((a, b) => {
+            const aIndex = orderMap.has(a.id) ? orderMap.get(a.id) : Number.MAX_SAFE_INTEGER;
+            const bIndex = orderMap.has(b.id) ? orderMap.get(b.id) : Number.MAX_SAFE_INTEGER;
+            return aIndex - bIndex;
+        });
+        this.saveSession();
+    }
+
+    autoScrollTabsContainer(clientX) {
+        if (!this.tabsContainer) return;
+        const rect = this.tabsContainer.getBoundingClientRect();
+        const scrollZone = 24;
+        const scrollAmount = 12;
+
+        if (clientX < rect.left + scrollZone) {
+            this.tabsContainer.scrollLeft -= scrollAmount;
+        } else if (clientX > rect.right - scrollZone) {
+            this.tabsContainer.scrollLeft += scrollAmount;
+        }
+    }
+
     createTab(url = 'browser://home') {
         if (this.tabs.length >= this.maxTabs) return;
 
@@ -1231,6 +1378,7 @@ class Browser {
         `;
 
         tabEl.addEventListener('click', (e) => {
+            if (this.suppressTabClick) return;
             if (!e.target.closest('.tab-close')) {
                 this.switchTab(id);
             }
@@ -1246,8 +1394,9 @@ class Browser {
             this.closeTab(id);
         });
 
-        this.tabsContainer.insertBefore(tabEl, this.newTabBtn);
         tab.element = tabEl;
+        this.attachTabDragHandlers(tab);
+        this.tabsContainer.insertBefore(tabEl, this.newTabBtn);
 
         this.createViewport(tab);
         this.tabs.push(tab);

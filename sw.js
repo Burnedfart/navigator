@@ -32,7 +32,7 @@ Object.setPrototypeOf(self.Response, OriginalResponse);
 self.Response.prototype = OriginalResponse.prototype;
 
 // Persistent cache for app assets
-const CACHE_NAME = 'navigator-app-cache';
+const CACHE_NAME = 'navigator-app-cache-v2026.02.05.1';
 
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
@@ -325,7 +325,7 @@ self.addEventListener('message', async (event) => {
         console.log('SW: 🔄 Config invalidated and DB handle closed');
     } else if (event.data?.type === 'get_version') {
         if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage('latest');
+            event.ports[0].postMessage('2026.02.05.1');
         }
     }
 });
