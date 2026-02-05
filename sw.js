@@ -31,9 +31,8 @@ self.Response = function (body, init) {
 Object.setPrototypeOf(self.Response, OriginalResponse);
 self.Response.prototype = OriginalResponse.prototype;
 
-// Bump to force cache refresh
-const VERSION = 'v65';
-const CACHE_NAME = 'scramjet-proxy-cache-v65';
+// Persistent cache for app assets
+const CACHE_NAME = 'navigator-app-cache';
 
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
@@ -52,7 +51,7 @@ try {
 
 
 self.addEventListener('install', (event) => {
-    console.log(`SW: 📥 Installing version ${VERSION}...`);
+    console.log('SW: 📥 Installing...');
 });
 
 self.addEventListener('activate', (event) => {
@@ -207,30 +206,30 @@ async function handleRequest(event) {
             return modifiedResponse;
         }
 
-        // Standard network request for app files
+        // Standard network request for app files (Network-First)
         if (isStaticResource(url)) {
-            const cache = await caches.open(CACHE_NAME);
+            try {
+                const response = await fetch(event.request);
 
-            // Check if this is a hard refresh (Ctrl+Shift+R)
-            const isHardRefresh = event.request.cache === 'reload' ||
-                event.request.headers.get('cache-control') === 'no-cache' ||
-                event.request.headers.get('pragma') === 'no-cache';
+                // If it's a valid response, update the cache
+                if (response.ok && response.type !== 'opaque') {
+                    const modifiedResponse = normalizeResponseHeaders(response, false);
+                    const cache = await caches.open(CACHE_NAME);
+                    cache.put(event.request, modifiedResponse.clone());
+                    return modifiedResponse;
+                }
 
-            if (!isHardRefresh) {
+                return response;
+            } catch (err) {
+                // Network failed, try to serve from cache
+                const cache = await caches.open(CACHE_NAME);
                 const cachedResponse = await cache.match(event.request);
-                if (cachedResponse) return cachedResponse;
+                if (cachedResponse) {
+                    console.log(`SW: 📦 Serving from cache (offline/failure): ${url}`);
+                    return cachedResponse;
+                }
+                throw err;
             }
-
-            const response = await fetch(event.request);
-
-            // If the response is opaque (cross-origin image/script), we can't normalize headers
-            if (response.type === 'opaque') return response;
-
-            const modifiedResponse = normalizeResponseHeaders(response, false);
-            if (response.ok) {
-                cache.put(event.request, modifiedResponse.clone());
-            }
-            return modifiedResponse;
         }
 
         const response = await fetch(event.request);
@@ -316,7 +315,7 @@ self.addEventListener('message', async (event) => {
         console.log('SW: 🔄 Config invalidated and DB handle closed');
     } else if (event.data?.type === 'get_version') {
         if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage(VERSION);
+            event.ports[0].postMessage('latest');
         }
     }
 });
