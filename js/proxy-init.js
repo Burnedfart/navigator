@@ -19,8 +19,9 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                     parentHref.includes('/github.io/a/') ||
                     parentHref.includes('/a/page1.html');
             } catch (e) {
-                // Cross-origin error means it's definitely not our same-origin landing page
-                isAboutBlankCloak = false;
+                // Cross-origin iframe detected - allow initialization (UI already allows this case)
+                isAboutBlankCloak = true;
+                console.log('🌐 [PROXY] Cross-origin iframe detected - initialization allowed');
             }
 
             if (!isAboutBlankCloak) {
