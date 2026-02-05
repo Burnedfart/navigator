@@ -444,7 +444,6 @@ class Browser {
             window.history.pushState({ anchor: true }, '');
         });
 
-        this.initializePins();
         this.bindEvents();
         this.loadTheme();
         this.loadDisguise();
