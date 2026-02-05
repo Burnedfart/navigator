@@ -327,6 +327,11 @@ input[type="range"]::-moz-range-thumb {
     background: #59f9b1;
 }
 
+.theme-preview.midnight {
+    background: #0b0e14;
+}
+
+
 
 /* Cloak Settings */
 .cloak-settings {

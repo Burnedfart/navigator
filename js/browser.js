@@ -4,6 +4,9 @@ class Browser {
         this.activeTabId = null;
         this.nextTabId = 1;
         this.maxTabs = 15;
+        this.tabDragState = null;
+        this.suppressTabClick = false;
+        this.tabDragThreshold = 6;
 
         // Blocked Sites List (Loaded from JSON)
         this.blockedSites = [];

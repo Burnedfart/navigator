@@ -109,3 +109,21 @@ html[data-theme="mint"] {
     --window-bg-solid: #2d333b;
     --logo-filter: invert(82%) sepia(21%) saturate(1001%) hue-rotate(93deg) brightness(103%) contrast(101%);
 }
+
+/* MIDNIGHT THEME - Deep Blue Dark */
+html[data-theme="midnight"] {
+    --bg-color: #0b0e14;
+    --window-bg: #111827;
+    --tab-bar-bg: #0b0e14;
+    --tab-active-bg: #111827;
+    --tab-hover-bg: #1a2333;
+    --toolbar-bg: #111827;
+    --text-primary: #cbd5e1;
+    --text-secondary: #64748b;
+    --border-color: #1f2937;
+    --omnibox-bg: #0b0e14;
+    --omnibox-focus-bg: #000000;
+    --accent-color: #3b82f6;
+    --window-bg-solid: #111827;
+    --logo-filter: invert(85%) sepia(10%) saturate(300%) hue-rotate(180deg) brightness(100%) contrast(100%);
+}
