@@ -136,7 +136,8 @@ class Browser {
                     <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>`,
                 items: [
-                    { name: 'GitHub', url: 'https://github.com', icon: 'GH' }
+                    { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
+                    { name: 'FreeMediaHeckYeah', url: 'https://fmhy.net', icon: 'FM' }
                 ]
             },
             games: {
