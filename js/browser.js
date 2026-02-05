@@ -29,14 +29,7 @@ class Browser {
         this.settingsCloseBtn = document.getElementById('settings-close-btn');
         this.themeBtns = document.querySelectorAll('.theme-btn');
 
-        // Theme Editor Elements
-        this.themeEditorModal = document.getElementById('theme-editor-modal');
-        this.btnOpenThemeEditor = document.getElementById('btn-open-theme-editor');
-        this.btnCloseThemeEditor = document.getElementById('theme-editor-close-btn');
-        this.btnSaveTheme = document.getElementById('btn-save-theme');
-        this.btnResetTheme = document.getElementById('btn-reset-theme');
-        this.customThemeNameInput = document.getElementById('custom-theme-name');
-        this.colorInputs = document.querySelectorAll('.color-item input[type="color"]');
+
 
 
 
@@ -157,8 +150,7 @@ class Browser {
                 </svg>`,
                 items: [
                     { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-                    { name: 'GeForce NOW', url: 'https://geforcenow.com', icon: 'GF' },
-                    { name: 'Now.gg', url: 'https://now.gg', icon: 'NG' }
+                    { name: 'GeForce NOW', url: 'https://geforcenow.com', icon: 'GF' }
                 ]
             },
             streaming: {
@@ -272,10 +264,6 @@ class Browser {
         }
     }
 
-    /**
-     * [SECURITY] Sanitize user input to prevent XSS attacks
-     * Converts HTML special characters to their text equivalents
-     */
     sanitizeHTML(str) {
         const div = document.createElement('div');
         div.textContent = str;
@@ -724,46 +712,6 @@ class Browser {
         }
     }
 
-
-
-    initializePins() {
-        // Version number - increment this whenever you update the default apps list
-        const PINS_VERSION = 5;
-
-        const defaultApps = [
-            { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-            { name: 'GitHub', url: 'https://github.com', icon: 'GH' },
-            { name: 'SpenFlix (Movies)', url: 'https://spenflix.ru', icon: 'SF' },
-            { name: 'GeForce NOW', url: 'https://www.geforcenow.com', icon: 'GF' }
-        ];
-
-        // Get current version from localStorage
-        const storedVersion = parseInt(localStorage.getItem('pins_version') || '0');
-
-        // If version is outdated or first visit, merge new defaults
-        if (storedVersion < PINS_VERSION) {
-            const existing = JSON.parse(localStorage.getItem('custom_apps') || '[]');
-
-            // Filter out defaults that already exist (by URL) to avoid duplicates
-            const newDefaults = defaultApps.filter(def =>
-                !existing.some(ext => ext.url === def.url)
-            );
-
-            // Merge: new defaults first, then existing apps
-            const combined = [...newDefaults, ...existing];
-
-            localStorage.setItem('custom_apps', JSON.stringify(combined));
-            localStorage.setItem('pins_version', PINS_VERSION.toString());
-            localStorage.setItem('pins_initialized', 'true');
-
-            if (storedVersion > 0) {
-                console.log(`[BROWSER] 📌 Updated pins from v${storedVersion} to v${PINS_VERSION} - added ${newDefaults.length} new apps`);
-            } else {
-                console.log(`[BROWSER] 📌 Initialized pins v${PINS_VERSION}`);
-            }
-        }
-    }
-
     bindEvents() {
         // Intercept new window requests from Scramjet or the Service Worker
         window.addEventListener('message', (e) => {
@@ -950,40 +898,7 @@ class Browser {
             });
         }
 
-        // Theme Editor Events
-        if (this.btnOpenThemeEditor) {
-            this.btnOpenThemeEditor.addEventListener('click', () => this.openThemeEditor());
-        }
-        if (this.btnCloseThemeEditor) {
-            this.btnCloseThemeEditor.addEventListener('click', () => this.closeThemeEditor());
-        }
-        if (this.themeEditorModal) {
-            this.themeEditorModal.addEventListener('click', (e) => {
-                if (e.target === this.themeEditorModal) this.closeThemeEditor();
-            });
-        }
-        if (this.btnSaveTheme) {
-            this.btnSaveTheme.addEventListener('click', () => this.saveCustomTheme());
-        }
-        if (this.btnResetTheme) {
-            this.btnResetTheme.addEventListener('click', () => this.resetThemeEditor());
-        }
 
-        this.colorInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                const varName = e.target.getAttribute('data-var');
-                const color = e.target.value;
-                document.documentElement.style.setProperty(varName, color);
-
-                // If updating primary text, we should ideally update the logo filter
-                if (varName === '--text-primary') {
-                    this.updateLogoFilterForColor(color);
-                }
-                if (varName === '--window-bg') {
-                    document.documentElement.style.setProperty('--window-bg-solid', color);
-                }
-            });
-        });
     }
 
     // Settings & Themes
@@ -1195,14 +1110,6 @@ class Browser {
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('browser_theme', theme);
-
-        if (theme === 'custom') {
-            this.applyCustomThemeVariables();
-        } else {
-            // Remove custom style overrides if switching back to preset
-            this.clearCustomThemeVariables();
-        }
-
         this.updateThemeActiveState();
     }
 
@@ -1211,108 +1118,7 @@ class Browser {
         this.setTheme(savedTheme);
     }
 
-    // Theme Editor Logic
-    openThemeEditor() {
-        this.closeSettings();
-        this.themeEditorModal.classList.remove('hidden');
 
-        // Initialize inputs with current computed values
-        const rootStyle = getComputedStyle(document.documentElement);
-        this.colorInputs.forEach(input => {
-            const varName = input.getAttribute('data-var');
-            const color = rootStyle.getPropertyValue(varName).trim();
-            if (color.startsWith('#')) {
-                input.value = color;
-            } else if (color.startsWith('rgb')) {
-                // Convert rgb to hex for input[type="color"]
-                input.value = this.rgbToHex(color);
-            }
-        });
-
-        const savedData = JSON.parse(localStorage.getItem('custom_theme_data') || '{}');
-        this.customThemeNameInput.value = savedData.name || 'Custom Theme';
-    }
-
-    closeThemeEditor() {
-        this.themeEditorModal.classList.add('hidden');
-        // Revert to saved state if not saved
-        this.loadTheme();
-    }
-
-    resetThemeEditor() {
-        if (confirm('Reset custom theme to current colors?')) {
-            this.openThemeEditor();
-        }
-    }
-
-    saveCustomTheme() {
-        const themeData = {
-            name: this.customThemeNameInput.value || 'Custom Theme',
-            variables: {}
-        };
-
-        this.colorInputs.forEach(input => {
-            const varName = input.getAttribute('data-var');
-            themeData.variables[varName] = input.value;
-        });
-
-        // Add logo filter to the saved data
-        const textPrimary = themeData.variables['--text-primary'];
-        themeData.variables['--logo-filter'] = this.calculateLogoFilter(textPrimary);
-
-        localStorage.setItem('custom_theme_data', JSON.stringify(themeData));
-        this.setTheme('custom');
-        this.closeThemeEditor();
-
-        console.log('[THEME] Saved custom theme:', themeData.name);
-    }
-
-    applyCustomThemeVariables() {
-        const savedData = JSON.parse(localStorage.getItem('custom_theme_data') || '{}');
-        const variables = savedData.variables || {};
-
-        for (const [name, value] of Object.entries(variables)) {
-            document.documentElement.style.setProperty(name, value);
-        }
-    }
-
-    clearCustomThemeVariables() {
-        const vars = [
-            '--bg-color', '--window-bg', '--tab-bar-bg', '--omnibox-bg',
-            '--text-primary', '--text-secondary', '--accent-color', '--border-color',
-            '--logo-filter'
-        ];
-        vars.forEach(v => document.documentElement.style.removeProperty(v));
-    }
-
-    updateLogoFilterForColor(hex) {
-        const filter = this.calculateLogoFilter(hex);
-        document.documentElement.style.setProperty('--logo-filter', filter);
-    }
-
-    calculateLogoFilter(hex) {
-        // Simplified Logic: 
-        // 1. Convert hex to brightness
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-
-        if (brightness > 128) {
-            return `brightness(0) saturate(100%) invert(100%)`; // Make White
-        } else {
-            return `brightness(0) saturate(100%)`; // Keep Black
-        }
-    }
-
-    rgbToHex(rgb) {
-        const result = rgb.match(/\d+/g);
-        if (!result || result.length < 3) return '#ffffff';
-        const r = parseInt(result[0]).toString(16).padStart(2, '0');
-        const g = parseInt(result[1]).toString(16).padStart(2, '0');
-        const b = parseInt(result[2]).toString(16).padStart(2, '0');
-        return `#${r}${g}${b}`;
-    }
 
     updateThemeActiveState() {
         const currentTheme = localStorage.getItem('browser_theme') || 'cloud';

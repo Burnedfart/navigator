@@ -140,16 +140,3 @@ html[data-theme="cloud"] .btn-secondary:hover {
     background-color: transparent;
     color: var(--text-secondary);
 }
-
-/* Custom Theme Editor Button - Disable Hover Flash */
-#btn-open-theme-editor {
-    transition: none !important;
-}
-
-#btn-open-theme-editor:hover {
-    background-color: var(--accent-color) !important;
-    color: var(--bg-color) !important;
-    transform: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-}
