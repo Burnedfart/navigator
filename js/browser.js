@@ -1722,35 +1722,6 @@ class Browser {
         this.navigate(input);
     }
 
-    async ensureProxyReady() {
-        if (window.ProxyService?.initialized && window.scramjet) {
-            return true;
-        }
-
-        if (window.ProxyService?.ready) {
-            try {
-                await Promise.race([
-                    window.ProxyService.ready,
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Proxy initialization timeout')), 5000)
-                    )
-                ]);
-            } catch (err) {
-                console.error('[BROWSER] Proxy initialization failed:', err);
-                alert('Proxy failed to initialize. Check the console for details.');
-                return false;
-            }
-        }
-
-        if (!window.ProxyService?.initialized || !window.scramjet) {
-            console.error('[BROWSER] Proxy not ready after initialization attempt.');
-            alert('Proxy is still loading or unavailable. Please refresh and try again.');
-            return false;
-        }
-
-        return true;
-    }
-
     async navigate(input) {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
         if (tab) tab.lastActive = Date.now();
