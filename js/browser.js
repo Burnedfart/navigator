@@ -1755,8 +1755,10 @@ class Browser {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
         if (tab) tab.lastActive = Date.now();
 
-        const proxyReady = await this.ensureProxyReady();
-        if (!proxyReady) return;
+        if (!window.ProxyService.initialized) {
+            alert('Proxy is still loading...');
+            return;
+        }
 
         // Proactive connection recovery for proxied navigation
         if (input !== 'browser://home') {
