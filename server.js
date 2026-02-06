@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import express from "express";
+import compression from "compression";
 
 const DOMAIN = "scholarnavigator.top";
 let httpsOptions;
@@ -29,7 +30,23 @@ Object.assign(wisp.options, {
     allow_udp_streams: false,
     hostname_blacklist: [],
     dns_servers: ["1.1.1.1", "1.0.0.1"],
+    keepalive: true,
+    keepalive_timeout: 60000, // 60 seconds
 });
+
+// Enable compression (gzip/brotli) for all responses
+app.use(compression({
+    level: 6, // Balanced compression level
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        // Don't compress if client doesn't support it
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Use compression middleware's default filter
+        return compression.filter(req, res);
+    }
+}));
 
 // CORS headers for cross-origin requests
 app.use((req, res, next) => {
@@ -104,10 +121,53 @@ httpServer.on("request", (req, res) => {
     app(req, res);
 });
 
+// Allowed origins for WISP connections
+const ALLOWED_WISP_ORIGINS = [
+    'https://education.scholarnavigator.top',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'null' // For about:blank iframes - they send origin as 'null'
+];
+
+// Function to validate origin for WISP connections
+function isOriginAllowed(req) {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+
+    // Check if origin is in allowed list
+    if (origin && ALLOWED_WISP_ORIGINS.includes(origin)) {
+        return true;
+    }
+
+    // If origin is null (about:blank), check referer
+    if (origin === 'null' && referer) {
+        // Check if referer starts with any allowed origin
+        const allowedDomains = [
+            'https://education.scholarnavigator.top',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ];
+
+        if (allowedDomains.some(domain => referer.startsWith(domain))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Handle WebSocket upgrade for WISP on HTTP server too
 httpServer.on("upgrade", (req, socket, head) => {
     if (req.url.endsWith("/wisp/")) {
-        console.log("📡 WISP WebSocket connection (HTTP) from:", req.headers.origin);
+        // Validate origin
+        if (!isOriginAllowed(req)) {
+            console.log("🚫 WISP connection rejected from:", req.headers.origin || 'unknown', "Referer:", req.headers.referer || 'none');
+            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        console.log("📡 WISP WebSocket connection (HTTP) from:", req.headers.origin, "Referer:", req.headers.referer);
         wisp.routeRequest(req, socket, head);
     } else {
         socket.end();
@@ -117,7 +177,15 @@ httpServer.on("upgrade", (req, socket, head) => {
 // Handle WebSocket upgrade for WISP
 server.on("upgrade", (req, socket, head) => {
     if (req.url.endsWith("/wisp/")) {
-        console.log("📡 WISP WebSocket connection established from:", req.headers.origin);
+        // Validate origin
+        if (!isOriginAllowed(req)) {
+            console.log("🚫 WISP connection rejected from:", req.headers.origin || 'unknown', "Referer:", req.headers.referer || 'none');
+            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        console.log("📡 WISP WebSocket connection established from:", req.headers.origin, "Referer:", req.headers.referer);
         wisp.routeRequest(req, socket, head);
     } else {
         socket.end();

@@ -1,0 +1,171 @@
+/* Launcher-specific styles (used when embedded in iframe) */
+
+:root {
+    --launcher-bg: #f0f2f5;
+    --launcher-window-bg: #ffffff;
+    --launcher-text-primary: #202124;
+    --launcher-text-secondary: #5f6368;
+    --launcher-accent: #202124;
+    --launcher-border: #c9ccd1;
+    --launcher-radius: 12px;
+    --launcher-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#launcher-ui {
+    background-color: var(--launcher-bg);
+    color: var(--launcher-text-primary);
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+}
+
+#launcher-ui header {
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    background: rgba(240, 242, 245, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+#launcher-ui .hero {
+    margin-top: 15vh;
+    text-align: center;
+    max-width: 800px;
+    padding: 2rem;
+    animation: fadeInUp 0.8s ease-out;
+}
+
+#launcher-ui h1 {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: var(--launcher-text-primary);
+}
+
+#launcher-ui .hero p {
+    font-size: 1.25rem;
+    color: var(--launcher-text-secondary);
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+}
+
+#launcher-ui .cta-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+#launcher-ui .cta-button {
+    background-color: var(--launcher-accent);
+    color: #fff;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: var(--launcher-transition);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    animation: buttonGlow 3s infinite ease-in-out;
+    border: none;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+}
+
+#launcher-ui .cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    background-color: #000;
+    animation: none;
+}
+
+@keyframes buttonGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(32, 33, 36, 0.3);
+    }
+}
+
+#launcher-ui .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 4rem 2rem;
+    max-width: 1200px;
+    width: 100%;
+}
+
+#launcher-ui .feature-card {
+    background: var(--launcher-window-bg);
+    padding: 2.5rem;
+    border-radius: var(--launcher-radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--launcher-border);
+    transition: var(--launcher-transition);
+}
+
+#launcher-ui .feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+
+#launcher-ui .feature-card h3 {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+#launcher-ui .feature-card p {
+    color: var(--launcher-text-secondary);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#launcher-ui footer {
+    margin-top: auto;
+    padding: 3rem;
+    color: var(--launcher-text-secondary);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    #launcher-ui .hero {
+        margin-top: 10vh;
+    }
+
+    #launcher-ui .features {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}

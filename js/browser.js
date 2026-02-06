@@ -406,12 +406,12 @@ class Browser {
 
     async loadBlockedSites() {
         try {
-            const response = await fetch('assets/blocked-sites.json');
+            const response = await fetch('assets/blocklist.json');
             if (!response.ok) throw new Error('Failed to load blocked sites');
             const data = await response.json();
-            if (data && Array.isArray(data.blocked_sites)) {
+            if (data && Array.isArray(data.blocked_domains)) {
                 // Sanitize: Strip protocol and trailing slashes for better matching
-                this.blockedSites = data.blocked_sites.map(site =>
+                this.blockedSites = data.blocked_domains.map(site =>
                     site.replace(/^https?:\/\//, '').replace(/\/$/, '')
                 );
                 console.log(`[BROWSER] Loaded ${this.blockedSites.length} blocked sites.`);
@@ -1722,14 +1722,41 @@ class Browser {
         this.navigate(input);
     }
 
+    async ensureProxyReady() {
+        if (window.ProxyService?.initialized && window.scramjet) {
+            return true;
+        }
+
+        if (window.ProxyService?.ready) {
+            try {
+                await Promise.race([
+                    window.ProxyService.ready,
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Proxy initialization timeout')), 5000)
+                    )
+                ]);
+            } catch (err) {
+                console.error('[BROWSER] Proxy initialization failed:', err);
+                alert('Proxy failed to initialize. Check the console for details.');
+                return false;
+            }
+        }
+
+        if (!window.ProxyService?.initialized || !window.scramjet) {
+            console.error('[BROWSER] Proxy not ready after initialization attempt.');
+            alert('Proxy is still loading or unavailable. Please refresh and try again.');
+            return false;
+        }
+
+        return true;
+    }
+
     async navigate(input) {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
         if (tab) tab.lastActive = Date.now();
 
-        if (!window.ProxyService.initialized) {
-            alert('Proxy is still loading...');
-            return;
-        }
+        const proxyReady = await this.ensureProxyReady();
+        if (!proxyReady) return;
 
         // Proactive connection recovery for proxied navigation
         if (input !== 'browser://home') {
