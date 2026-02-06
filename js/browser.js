@@ -64,6 +64,8 @@ class Browser {
         };
         this.sleepThresholds = [60, 300, 600, 1200, 1800]; // 1m, 5m, 10m, 20m, 30m
         this.sleepInterval = null;
+        this.suppressUnloadPrompt = false;
+        this.beforeUnloadHandler = null;
 
 
 
@@ -447,6 +449,14 @@ class Browser {
             if (e.state && e.state.anchor) return;
             window.history.pushState({ anchor: true }, '');
         });
+        this.beforeUnloadHandler = (e) => {
+            if (this.suppressUnloadPrompt) {
+                return;
+            }
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
         this.bindEvents();
         this.loadTheme();
@@ -1712,14 +1722,41 @@ class Browser {
         this.navigate(input);
     }
 
+    async ensureProxyReady() {
+        if (window.ProxyService?.initialized && window.scramjet) {
+            return true;
+        }
+
+        if (window.ProxyService?.ready) {
+            try {
+                await Promise.race([
+                    window.ProxyService.ready,
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Proxy initialization timeout')), 5000)
+                    )
+                ]);
+            } catch (err) {
+                console.error('[BROWSER] Proxy initialization failed:', err);
+                alert('Proxy failed to initialize. Check the console for details.');
+                return false;
+            }
+        }
+
+        if (!window.ProxyService?.initialized || !window.scramjet) {
+            console.error('[BROWSER] Proxy not ready after initialization attempt.');
+            alert('Proxy is still loading or unavailable. Please refresh and try again.');
+            return false;
+        }
+
+        return true;
+    }
+
     async navigate(input) {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
         if (tab) tab.lastActive = Date.now();
 
-        if (!window.ProxyService.initialized) {
-            alert('Proxy is still loading...');
-            return;
-        }
+        const proxyReady = await this.ensureProxyReady();
+        if (!proxyReady) return;
 
         // Proactive connection recovery for proxied navigation
         if (input !== 'browser://home') {
@@ -2163,6 +2200,10 @@ class Browser {
         if (e.key === panicKey && panicUrl) {
             e.preventDefault();
             console.log('[PANIC] 🚨 Panic button triggered! Redirect to:', panicUrl);
+            this.suppressUnloadPrompt = true;
+            if (this.beforeUnloadHandler) {
+                window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            }
             window.top.location.replace(panicUrl);
         }
     }
