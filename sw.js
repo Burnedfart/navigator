@@ -126,6 +126,26 @@ function applyRelaxedEmbeddingHeaders(headers) {
 }
 
 function normalizeResponseHeaders(response, relaxEmbedding) {
+    // [PERFORMANCE] Skip expensive header manipulation for images/fonts
+    const contentType = response.headers.get('content-type') || '';
+    const isMediaResource = contentType.startsWith('image/') ||
+        contentType.includes('font') ||
+        contentType.startsWith('video/') ||
+        contentType.startsWith('audio/');
+
+    if (isMediaResource) {
+        // Media resources don't need CSP/frame-options stripping
+        // Just ensure CORS is permissive and pass through
+        const headers = new Headers(response.headers);
+        headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+        });
+    }
+
+    // Full header manipulation for HTML/JS/CSS
     let headers = stripRestrictiveHeaders(response.headers);
     if (relaxEmbedding) {
         headers = applyRelaxedEmbeddingHeaders(headers);

@@ -20,6 +20,7 @@
     "@mercuryworkshop/libcurl-transport": "^1.5.2",
     "@mercuryworkshop/scramjet": "https://github.com/MercuryWorkshop/scramjet/releases/download/latest/mercuryworkshop-scramjet-2.0.0-alpha.tgz",
     "@mercuryworkshop/wisp-js": "^0.4.1",
+    "compression": "^1.8.1",
     "express": "^4.21.2"
   }
 }

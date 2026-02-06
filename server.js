@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import express from "express";
+import compression from "compression";
 
 const DOMAIN = "scholarnavigator.top";
 let httpsOptions;
@@ -29,7 +30,23 @@ Object.assign(wisp.options, {
     allow_udp_streams: false,
     hostname_blacklist: [],
     dns_servers: ["1.1.1.1", "1.0.0.1"],
+    keepalive: true,
+    keepalive_timeout: 60000, // 60 seconds
 });
+
+// Enable compression (gzip/brotli) for all responses
+app.use(compression({
+    level: 6, // Balanced compression level
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        // Don't compress if client doesn't support it
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Use compression middleware's default filter
+        return compression.filter(req, res);
+    }
+}));
 
 // CORS headers for cross-origin requests
 app.use((req, res, next) => {
