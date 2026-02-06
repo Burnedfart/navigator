@@ -64,6 +64,8 @@ class Browser {
         };
         this.sleepThresholds = [60, 300, 600, 1200, 1800]; // 1m, 5m, 10m, 20m, 30m
         this.sleepInterval = null;
+        this.suppressUnloadPrompt = false;
+        this.beforeUnloadHandler = null;
 
 
 
@@ -447,6 +449,14 @@ class Browser {
             if (e.state && e.state.anchor) return;
             window.history.pushState({ anchor: true }, '');
         });
+        this.beforeUnloadHandler = (e) => {
+            if (this.suppressUnloadPrompt) {
+                return;
+            }
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
         this.bindEvents();
         this.loadTheme();
@@ -2190,6 +2200,10 @@ class Browser {
         if (e.key === panicKey && panicUrl) {
             e.preventDefault();
             console.log('[PANIC] 🚨 Panic button triggered! Redirect to:', panicUrl);
+            this.suppressUnloadPrompt = true;
+            if (this.beforeUnloadHandler) {
+                window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            }
             window.top.location.replace(panicUrl);
         }
     }

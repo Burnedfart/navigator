@@ -20,8 +20,7 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                     parentHref.includes('/a/page1.html');
             } catch (e) {
                 // Cross-origin iframe detected - allow initialization (UI already allows this case)
-                isAboutBlankCloak = true;
-                console.log('🌐 [PROXY] Cross-origin iframe detected - initialization allowed');
+                isAboutBlankCloak = false;
             }
 
             if (!isAboutBlankCloak) {
