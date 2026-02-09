@@ -1629,6 +1629,10 @@ class Browser {
             const tabTitleEl = tab.element.querySelector('.tab-title');
             if (tabTitleEl) tabTitleEl.textContent = tab.title;
 
+            // Clear the omnibox
+            this.omnibox.value = '';
+            this.omnibox.placeholder = 'Playing game...';
+
             // Clean up the blob URL after a delay (give it time to load)
             setTimeout(() => {
                 console.log('[BROWSER] Cleaning up blob URL');
