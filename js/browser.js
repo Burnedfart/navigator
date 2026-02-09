@@ -1626,6 +1626,7 @@ class Browser {
 
             // Update tab metadata
             tab.title = 'Game';
+            tab.isGame = true; // Mark as game tab
             const tabTitleEl = tab.element.querySelector('.tab-title');
             if (tabTitleEl) tabTitleEl.textContent = tab.title;
 
@@ -1673,6 +1674,12 @@ class Browser {
                 this.omnibox.value = '';
                 this.omnibox.placeholder = 'Search or enter address';
                 this.setLoading(false); // Home is static
+            } else if (newTab.isGame) {
+                // Game tab - keep UI clean
+                if (newTab.homeElement) newTab.homeElement.classList.add('hidden');
+                if (newTab.iframe) newTab.iframe.classList.add('active');
+                this.omnibox.value = '';
+                this.omnibox.placeholder = 'Playing game...';
             } else {
                 if (newTab.homeElement) newTab.homeElement.classList.add('hidden');
                 if (newTab.iframe) newTab.iframe.classList.add('active');
@@ -1903,6 +1910,11 @@ class Browser {
 
         // UI Updates
         this.updateBookmarkButtonState();
+
+        // Don't update UI for game tabs
+        if (tab.isGame) {
+            return;
+        }
 
         if (url === 'browser://home') {
             tab.title = 'New Tab';
@@ -2146,6 +2158,9 @@ class Browser {
 
             // If we are on the home page and not currently transitioning out of it, skip sync
             if (tab.url === 'browser://home' && tab.homeElement && !tab.homeElement.classList.contains('hidden')) return;
+
+            // Don't sync game tabs
+            if (tab.isGame) return;
 
             const iframeWindow = tab.iframe.contentWindow;
             const rawUrl = iframeWindow.location.href;
