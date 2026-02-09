@@ -146,7 +146,7 @@ class Browser {
                 ]
             },
             games: {
-                name: 'Games',
+                name: 'Game Sites',
                 icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="6" y1="12" x2="10" y2="12"></line>
                     <line x1="8" y1="10" x2="8" y2="14"></line>
@@ -155,8 +155,20 @@ class Browser {
                     <rect x="2" y="6" width="20" height="12" rx="2"></rect>
                 </svg>`,
                 items: [
-                    { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' },
-                    { name: 'GeForce NOW', url: 'https://geforcenow.com', icon: 'GF' }
+                    { name: 'Coolmath Games', url: 'https://coolmathgames.com', icon: 'CM' }
+                ]
+            },
+            googleGames: {
+                name: 'Scholar Squad Games',
+                icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>`,
+                items: [
+                    { name: 'Sample Game (Test)', htmlUrl: './sample-game.html', icon: '🎮' },
+                    { name: 'Your Game 1', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_1_HTML_URL', icon: 'G1' },
+                    { name: 'Your Game 2', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_2_HTML_URL', icon: 'G2' },
+                    { name: 'Your Game 3', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_3_HTML_URL', icon: 'G3' }
                 ]
             },
             streaming: {
@@ -1500,8 +1512,10 @@ class Browser {
 
         // Render all items
         category.items.forEach((item, index) => {
+            const dataUrl = item.url || '';
+            const dataHtmlUrl = item.htmlUrl || '';
             menuHtml += `
-                <div class="category-menu-item" data-url="${item.url}" data-name="${item.name.toLowerCase()}">
+                <div class="category-menu-item" data-url="${dataUrl}" data-html-url="${dataHtmlUrl}" data-name="${item.name.toLowerCase()}">
                     <div class="item-icon">${item.icon}</div>
                     <div class="item-title">${item.name}</div>
                 </div>
@@ -1544,7 +1558,15 @@ class Browser {
         overlay.querySelectorAll('.category-menu-item').forEach(item => {
             item.addEventListener('click', () => {
                 const url = item.getAttribute('data-url');
-                this.createTab(url);
+                const htmlUrl = item.getAttribute('data-html-url');
+                
+                if (htmlUrl && htmlUrl !== '') {
+                    // Load HTML content directly
+                    this.loadHtmlGame(htmlUrl);
+                } else if (url && url !== '') {
+                    // Navigate to URL
+                    this.createTab(url);
+                }
                 this.closeCategoryMenu();
             });
         });
@@ -1557,6 +1579,49 @@ class Browser {
         const overlay = document.getElementById('category-menu-overlay');
         if (overlay) {
             overlay.classList.add('hidden');
+        }
+    }
+
+    async loadHtmlGame(htmlUrl) {
+        try {
+            // Fetch the HTML content
+            const response = await fetch(htmlUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to load game: ${response.statusText}`);
+            }
+            const htmlContent = await response.text();
+            
+            // Create a new tab
+            this.createTab('browser://game');
+            
+            // Get the newly created tab (it's the last one and should be active)
+            const tab = this.tabs[this.tabs.length - 1];
+            
+            if (!tab || !tab.iframe) {
+                throw new Error('Failed to create tab');
+            }
+            
+            // Wait a moment for the iframe to be ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Create a blob URL from the HTML content
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Load the blob URL in the iframe
+            tab.iframe.src = blobUrl;
+            tab.url = 'browser://game';
+            tab.title = 'Game';
+            this.updateOmnibox();
+            this.updateTabUI(tab);
+            
+            // Clean up the blob URL after loading
+            tab.iframe.addEventListener('load', () => {
+                URL.revokeObjectURL(blobUrl);
+            }, { once: true });
+        } catch (error) {
+            console.error('[BROWSER] Failed to load HTML game:', error);
+            this.showError('Failed to load game. Please check the URL and try again.');
         }
     }
 

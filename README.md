@@ -13,7 +13,6 @@
 - **Dynamic Tab System**: Manage multiple proxied sessions simultaneously.
 - **Modern Navigation**: Fully functional Back, Forward, Refresh, and Home controls.
 - **Interactive Omnibox**: Smart address bar with real-time URL syncing and search capabilities.
-- **Pinned Apps**: Quick access to your favorite sites from the custom home screen.
 
 ### 🎨 Personalization
 - **Theme System**: Choose from presets like *Cloud*, *Ink*, *Coffee*, and *Nebula*.
