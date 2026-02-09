@@ -165,9 +165,8 @@ class Browser {
                     <polygon points="10 8 16 12 10 16 10 8"></polygon>
                 </svg>`,
                 items: [
-                    { name: 'Sample Game (Test)', htmlUrl: 'sample-game.html', icon: '🎮' },
                     { name: 'Chopped Clicker', htmlUrl: 'https://scholarsquad.github.io/chopped/', icon: 'CC' },
-                    { name: 'Your Game 2', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_2_HTML_URL', icon: 'G2' },
+                    { name: 'Space Waves', htmlUrl: 'https://scholarsquad.github.io/SpacWve/', icon: 'SW' },
                     { name: 'Your Game 3', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_3_HTML_URL', icon: 'G3' }
                 ]
             },
