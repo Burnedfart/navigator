@@ -167,7 +167,11 @@ class Browser {
                 items: [
                     { name: 'Chopped Clicker', htmlUrl: 'https://scholarsquad.github.io/chopped/', icon: 'CC' },
                     { name: 'Space Waves', htmlUrl: 'https://scholarsquad.github.io/SpacWve/', icon: 'SW' },
-                    { name: 'Your Game 3', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_3_HTML_URL', icon: 'G3' }
+                    { name: 'Airplane Tycoon', htmlUrl: 'https://scholarsquad.github.io/asosdfhaoipadfspihuadfshpuidafsphiuf/', icon: '✈️' },
+                    { name: 'Cookie Clicker', htmlUrl: 'https://scholarsquad.github.io/homeworkcookie/', icon: '🍪' },
+                    { name: 'Snow Rider 3D', htmlUrl: 'https://scholarsquad.github.io/homeworksnow/', icon: '🚗' },
+                    { name: 'Slope', htmlUrl: 'https://scholarsquad.github.io/slop/', icon: '🏔️' },
+                    { name: 'Crossy Road', htmlUrl: 'https://scholarsquad.github.io/HomeworkRoad/', icon: '🛣️' }
                 ]
             },
             streaming: {
