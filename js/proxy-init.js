@@ -175,7 +175,38 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         const { ScramjetController } = scramjetBundle;
 
-        const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://navigator.scholarnavigator.workers.dev/wisp/";
+        const isAboutBlank = window.location.href === 'about:blank' || 
+                             window.location.protocol === 'about:';
+        
+        // CRITICAL: In about:blank, location.protocol is 'about:', so we need to force wss://
+        // Otherwise WebSocket connections will fail due to mixed content or protocol mismatch
+        const useSecureWS = location.protocol === "https:" || isAboutBlank;
+        const wispUrl = (useSecureWS ? "wss" : "ws") + "://navigator.scholarnavigator.workers.dev/wisp/";
+        
+        // If in about:blank, we need to ensure WebSocket connections work properly
+        if (isAboutBlank) {
+            console.log('🔐 [PROXY] Detected about:blank context - applying fixes for streaming');
+            console.log('🔐 [PROXY] WISP URL:', wispUrl);
+            
+            // Set a base URL to help with origin resolution
+            if (!document.querySelector('base')) {
+                const base = document.createElement('base');
+                base.href = 'https://education.scholarnavigator.top/';
+                document.head.insertBefore(base, document.head.firstChild);
+                console.log('✅ [PROXY] Set base URL for about:blank context');
+            }
+            
+            // Override document.domain to help with origin issues
+            try {
+                // This helps some streaming sites that check document.domain
+                Object.defineProperty(document, 'domain', {
+                    get: function() { return 'education.scholarnavigator.top'; },
+                    configurable: true
+                });
+            } catch (e) {
+                console.warn('⚠️ [PROXY] Could not override document.domain:', e);
+            }
+        }
 
         // DIAGNOSTIC: Test WebSocket connectivity before proceeding
         if (window.WispHealthChecker) {
@@ -234,6 +265,15 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
                 // Disable URL truncation to prevent "domain.com/..." links
                 truncate: false,
             },
+            // CRITICAL: Fix for about:blank - ensure proper origin handling
+            ...(isAboutBlank && {
+                defaultOrigin: 'https://education.scholarnavigator.top',
+                syncOrigin: true, // Force origin synchronization
+            }),
+            // Ensure proper header rewriting for streaming
+            rewriteHeaders: true,
+            // Force proper referrer policy
+            referrerPolicy: 'no-referrer-when-downgrade',
         };
 
         // Store config globally for recovery after SW restart

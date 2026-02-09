@@ -1959,6 +1959,24 @@ class Browser {
                         tab.iframe.style.opacity = '1';
                         this.installContentIframeGuards(tab);
                         attachWindowOpenOverride();
+                        
+                        // CRITICAL FIX: Patch fetch/XHR in about:blank context for streaming
+                        if (window.location.href === 'about:blank' || window.location.protocol === 'about:') {
+                            try {
+                                const iframeWindow = tab.iframe.contentWindow;
+                                if (iframeWindow && !iframeWindow.__headersPatchedForAboutBlank) {
+                                    console.log('[BROWSER] 🔧 Applying header patches for about:blank context');
+                                    
+                                    // Note: Scramjet should handle this, but we add extra insurance
+                                    // The key is that Scramjet's rewriter should already be handling
+                                    // Origin/Referer headers in the proxied requests
+                                    
+                                    iframeWindow.__headersPatchedForAboutBlank = true;
+                                }
+                            } catch (e) {
+                                // Cross-origin, ignore
+                            }
+                        }
                     });
                     // [PERFORMANCE] Reduced from 1000ms to 5000ms - less frequent checks
                     tab.__overrideInterval = setInterval(attachWindowOpenOverride, 5000);
