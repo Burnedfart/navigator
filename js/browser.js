@@ -1623,7 +1623,8 @@ class Browser {
 
             // Update tab metadata
             tab.title = 'Game';
-            this.updateTabUI(tab);
+            const tabTitleEl = tab.element.querySelector('.tab-title');
+            if (tabTitleEl) tabTitleEl.textContent = tab.title;
 
             // Clean up the blob URL after a delay (give it time to load)
             setTimeout(() => {
