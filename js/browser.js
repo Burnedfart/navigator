@@ -165,8 +165,8 @@ class Browser {
                     <polygon points="10 8 16 12 10 16 10 8"></polygon>
                 </svg>`,
                 items: [
-                    { name: 'Sample Game (Test)', htmlUrl: './sample-game.html', icon: '🎮' },
-                    { name: 'Your Game 1', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_1_HTML_URL', icon: 'G1' },
+                    { name: 'Sample Game (Test)', htmlUrl: 'sample-game.html', icon: '🎮' },
+                    { name: 'Chopped Clicker', htmlUrl: 'https://scholarsquad.github.io/chopped/', icon: 'CC' },
                     { name: 'Your Game 2', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_2_HTML_URL', icon: 'G2' },
                     { name: 'Your Game 3', htmlUrl: 'YOUR_GOOGLE_SITE_GAME_3_HTML_URL', icon: 'G3' }
                 ]
@@ -1559,7 +1559,7 @@ class Browser {
             item.addEventListener('click', () => {
                 const url = item.getAttribute('data-url');
                 const htmlUrl = item.getAttribute('data-html-url');
-                
+
                 if (htmlUrl && htmlUrl !== '') {
                     // Load HTML content directly
                     this.loadHtmlGame(htmlUrl);
@@ -1584,44 +1584,62 @@ class Browser {
 
     async loadHtmlGame(htmlUrl) {
         try {
-            // Fetch the HTML content
+            console.log('[BROWSER] Loading HTML game from:', htmlUrl);
+
+            // Check if it's a local file (relative path)
+            const isLocalFile = !htmlUrl.startsWith('http://') && !htmlUrl.startsWith('https://');
+
+            if (isLocalFile) {
+                // For local files, load directly in iframe
+                console.log('[BROWSER] Loading local file directly');
+                this.createTab(htmlUrl);
+                return;
+            }
+
+            // For remote files, fetch and use blob URL
             const response = await fetch(htmlUrl);
             if (!response.ok) {
-                throw new Error(`Failed to load game: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const htmlContent = await response.text();
-            
+
+            console.log('[BROWSER] HTML content loaded, length:', htmlContent.length);
+
             // Create a new tab
             this.createTab('browser://game');
-            
+
             // Get the newly created tab (it's the last one and should be active)
             const tab = this.tabs[this.tabs.length - 1];
-            
+
             if (!tab || !tab.iframe) {
                 throw new Error('Failed to create tab');
             }
-            
+
             // Wait a moment for the iframe to be ready
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             // Create a blob URL from the HTML content
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const blobUrl = URL.createObjectURL(blob);
-            
+
+            console.log('[BROWSER] Blob URL created:', blobUrl);
+
             // Load the blob URL in the iframe
             tab.iframe.src = blobUrl;
             tab.url = 'browser://game';
             tab.title = 'Game';
             this.updateOmnibox();
             this.updateTabUI(tab);
-            
+
             // Clean up the blob URL after loading
             tab.iframe.addEventListener('load', () => {
+                console.log('[BROWSER] Game loaded successfully');
                 URL.revokeObjectURL(blobUrl);
             }, { once: true });
         } catch (error) {
             console.error('[BROWSER] Failed to load HTML game:', error);
-            this.showError('Failed to load game. Please check the URL and try again.');
+            console.error('[BROWSER] URL was:', htmlUrl);
+            this.showError(`Failed to load game: ${error.message}`);
         }
     }
 
@@ -2024,18 +2042,18 @@ class Browser {
                         tab.iframe.style.opacity = '1';
                         this.installContentIframeGuards(tab);
                         attachWindowOpenOverride();
-                        
+
                         // CRITICAL FIX: Patch fetch/XHR in about:blank context for streaming
                         if (window.location.href === 'about:blank' || window.location.protocol === 'about:') {
                             try {
                                 const iframeWindow = tab.iframe.contentWindow;
                                 if (iframeWindow && !iframeWindow.__headersPatchedForAboutBlank) {
                                     console.log('[BROWSER] 🔧 Applying header patches for about:blank context');
-                                    
+
                                     // Note: Scramjet should handle this, but we add extra insurance
                                     // The key is that Scramjet's rewriter should already be handling
                                     // Origin/Referer headers in the proxied requests
-                                    
+
                                     iframeWindow.__headersPatchedForAboutBlank = true;
                                 }
                             } catch (e) {
