@@ -1605,37 +1605,32 @@ class Browser {
 
             console.log('[BROWSER] HTML content loaded, length:', htmlContent.length);
 
-            // Create a new tab
-            this.createTab('browser://game');
-
-            // Get the newly created tab (it's the last one and should be active)
-            const tab = this.tabs[this.tabs.length - 1];
-
-            if (!tab || !tab.iframe) {
-                throw new Error('Failed to create tab');
-            }
-
-            // Wait a moment for the iframe to be ready
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Create a blob URL from the HTML content
+            // Create a blob URL from the HTML content first
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const blobUrl = URL.createObjectURL(blob);
 
             console.log('[BROWSER] Blob URL created:', blobUrl);
 
-            // Load the blob URL in the iframe
-            tab.iframe.src = blobUrl;
-            tab.url = 'browser://game';
+            // Create a new tab with the blob URL (this will trigger navigate() and create iframe)
+            this.createTab(blobUrl);
+
+            // Get the newly created tab (it's the last one and should be active)
+            const tab = this.tabs[this.tabs.length - 1];
+
+            if (!tab) {
+                throw new Error('Failed to create tab');
+            }
+
+            // Update tab metadata
             tab.title = 'Game';
-            this.updateOmnibox();
             this.updateTabUI(tab);
 
-            // Clean up the blob URL after loading
-            tab.iframe.addEventListener('load', () => {
-                console.log('[BROWSER] Game loaded successfully');
+            // Clean up the blob URL after a delay (give it time to load)
+            setTimeout(() => {
+                console.log('[BROWSER] Cleaning up blob URL');
                 URL.revokeObjectURL(blobUrl);
-            }, { once: true });
+            }, 5000);
+
         } catch (error) {
             console.error('[BROWSER] Failed to load HTML game:', error);
             console.error('[BROWSER] URL was:', htmlUrl);
