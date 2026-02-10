@@ -1193,6 +1193,7 @@ class Browser {
 
         try {
             const urlObj = new URL(url);
+            const hostname = urlObj.hostname.toLowerCase();
             const fullString = urlObj.toString().toLowerCase();
 
             // Check against basic keywords
@@ -1203,10 +1204,12 @@ class Browser {
                 }
             }
 
-            // Check against blocked sites list
+            // Check against blocked sites list - match exact hostname or subdomain
             if (this.blockedSites && this.blockedSites.length > 0) {
                 for (const site of this.blockedSites) {
-                    if (fullString.includes(site)) {
+                    const blockedDomain = site.toLowerCase();
+                    // Exact match or subdomain match (e.g., site.com matches www.site.com)
+                    if (hostname === blockedDomain || hostname.endsWith('.' + blockedDomain)) {
                         return true;
                     }
                 }
