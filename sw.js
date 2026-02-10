@@ -178,6 +178,35 @@ async function handleRequest(event) {
     const fetchDest = event.request.headers.get('Sec-Fetch-Dest');
     const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
 
+    // BYPASS: Health check and diagnostic endpoints should never be proxied
+    if (url.includes('/api/health') || url.includes('/wisp/') && event.request.method === 'GET') {
+        // Pass through directly without any proxy intervention
+        try {
+            const response = await fetch(event.request);
+            // Add CORS headers to allow cross-origin health checks
+            const headers = new Headers(response.headers);
+            headers.set('Access-Control-Allow-Origin', '*');
+            headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            headers.set('Access-Control-Allow-Headers', 'Content-Type');
+            
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers
+            });
+        } catch (err) {
+            console.error('SW: ❌ Health check failed:', err);
+            // Return error with CORS headers
+            return new Response(JSON.stringify({ error: err.message }), {
+                status: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        }
+    }
+
     // If scramjet hasn't been initialized yet, pass through all requests
     if (!scramjet || !scramjetConfigLoaded) {
         const isProxied = url.includes('/service/') && (url.includes('http%3A') || url.includes('http:'));

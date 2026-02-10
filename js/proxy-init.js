@@ -113,15 +113,24 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
 
         // 3. Handle Cross-Origin Isolation
         if (!window.crossOriginIsolated && window.isSecureContext) {
-            if (!sessionStorage.getItem('coi_reloaded')) {
-                sessionStorage.setItem('coi_reloaded', 'true');
-                console.log('🔄 [PROXY] Reloading NOW for Isolation headers...');
-                // Use setTimeout to ensure log is visible, then reload immediately
+            const reloadCount = parseInt(sessionStorage.getItem('coi_reload_count') || '0');
+            
+            if (reloadCount === 0) {
+                // First attempt - reload to get COI headers
+                sessionStorage.setItem('coi_reload_count', '1');
+                console.log('🔄 [PROXY] Reloading for Cross-Origin Isolation headers...');
                 setTimeout(() => window.location.reload(), 10);
-                throw new Error('RELOADING'); // Stop all execution immediately
+                throw new Error('RELOADING');
+            } else if (reloadCount === 1) {
+                // Second load - if still not isolated, continue anyway but log warning
+                console.warn('⚠️ [PROXY] Cross-Origin Isolation not available after reload. Continuing anyway...');
+                console.warn('⚠️ [PROXY] Some features (SharedArrayBuffer) may not work.');
+                sessionStorage.setItem('coi_reload_count', '2'); // Mark as attempted
             }
+            // If reloadCount >= 2, we've already tried and logged, just continue
         } else {
-            sessionStorage.removeItem('coi_reloaded');
+            // Successfully isolated or not in secure context
+            sessionStorage.removeItem('coi_reload_count');
         }
 
         // 4. Load Core Libraries
