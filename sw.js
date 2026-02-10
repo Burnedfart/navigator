@@ -180,6 +180,7 @@ async function handleRequest(event) {
 
     // BYPASS: Health check and diagnostic endpoints should never be proxied
     if (url.includes('/api/health') || (url.includes('/wisp/') && event.request.method === 'GET')) {
+        console.log('SW: 🔓 Bypassing proxy for health check:', url);
         // Pass through directly without any proxy intervention
         try {
             const response = await fetch(event.request);
@@ -195,7 +196,7 @@ async function handleRequest(event) {
                 headers
             });
         } catch (err) {
-            console.error('SW: ❌ Health check failed:', err);
+            console.error('SW: ❌ Health check bypass failed:', err);
             // Return error with CORS headers
             return new Response(JSON.stringify({ error: err.message }), {
                 status: 500,

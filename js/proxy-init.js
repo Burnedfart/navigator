@@ -75,6 +75,14 @@ window.ProxyService.ready = new Promise(async (resolve, reject) => {
         });
         console.log('✅ [SW] Registered:', registration.scope);
 
+        // Force check for updates immediately
+        try {
+            await registration.update();
+            console.log('🔄 [SW] Checked for updates');
+        } catch (e) {
+            console.warn('⚠️ [SW] Update check failed:', e);
+        }
+
         const handleUpdateFound = async (waitingWorker) => {
             console.log('🔄 [SW] New version available, applying automatically...');
             waitingWorker.postMessage('skipWaiting');
