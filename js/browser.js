@@ -1882,30 +1882,28 @@ class Browser {
         // UI Updates
         this.updateBookmarkButtonState();
 
-        // Don't update UI for game tabs
-        if (tab.isGame) {
-            return;
-        }
-
-        if (url === 'browser://home') {
-            tab.title = 'New Tab';
-            this.omnibox.value = '';
-            this.omnibox.placeholder = 'Search or enter address';
-        } else {
-            try {
-                tab.title = new URL(url).hostname || 'Browse';
-            } catch (e) {
-                tab.title = 'Browse';
+        // Update UI differently for game tabs
+        if (!tab.isGame) {
+            if (url === 'browser://home') {
+                tab.title = 'New Tab';
+                this.omnibox.value = '';
+                this.omnibox.placeholder = 'Search or enter address';
+            } else {
+                try {
+                    tab.title = new URL(url).hostname || 'Browse';
+                } catch (e) {
+                    tab.title = 'Browse';
+                }
+                this.omnibox.value = url;
+                this.omnibox.placeholder = 'Search or enter address';
             }
-            this.omnibox.value = url;
-            this.omnibox.placeholder = 'Search or enter address';
+
+            const tabTitleEl = tab.element.querySelector('.tab-title');
+            if (tabTitleEl) tabTitleEl.textContent = tab.title;
+
+            // Update Favicon
+            this.fetchFavicon(tab, url);
         }
-
-        const tabTitleEl = tab.element.querySelector('.tab-title');
-        if (tabTitleEl) tabTitleEl.textContent = tab.title;
-
-        // Update Favicon
-        this.fetchFavicon(tab, url);
 
         if (url === 'browser://home') {
             if (tab.iframe) tab.iframe.classList.remove('active');
