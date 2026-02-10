@@ -1586,22 +1586,109 @@ class Browser {
     }
 
     loadHtmlGame(htmlUrl) {
-        // Load the game URL like any other site
-        this.createTab(htmlUrl);
+        // Check if the URL is from a trusted source that doesn't need proxying
+        const trustedDomains = ['scholarsquad.github.io', 'github.io'];
+        const shouldProxy = !trustedDomains.some(domain => htmlUrl.includes(domain));
         
-        // Get the newly created tab
-        const tab = this.tabs[this.tabs.length - 1];
-        if (!tab) return;
-        
-        // Mark as game and update UI after a short delay to let navigation start
-        setTimeout(() => {
-            tab.isGame = true;
-            tab.title = 'Game';
-            const tabTitleEl = tab.element.querySelector('.tab-title');
-            if (tabTitleEl) tabTitleEl.textContent = 'Game';
+        if (shouldProxy) {
+            // Load through proxy for untrusted sources
+            this.createTab(htmlUrl);
+            
+            const tab = this.tabs[this.tabs.length - 1];
+            if (!tab) return;
+            
+            setTimeout(() => {
+                tab.isGame = true;
+                tab.title = 'Game';
+                const tabTitleEl = tab.element.querySelector('.tab-title');
+                if (tabTitleEl) tabTitleEl.textContent = 'Game';
+                this.omnibox.value = '';
+                this.omnibox.placeholder = 'Playing game...';
+            }, 500);
+        } else {
+            // Open directly in iframe for trusted sources (better compatibility)
+            const id = this.nextTabId++;
+            const tab = {
+                id,
+                url: htmlUrl,
+                title: 'Game',
+                favicon: '',
+                iframe: null,
+                scramjetWrapper: null,
+                homeElement: null,
+                element: null,
+                lastActive: Date.now(),
+                sleeping: false,
+                memory: Math.floor(25 + Math.random() * 40),
+                isGame: true
+            };
+
+            // Create Tab UI
+            const tabEl = document.createElement('div');
+            tabEl.className = 'tab';
+            tabEl.dataset.id = id;
+            tabEl.innerHTML = `
+                <div class="tab-sleep-icon">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </div>
+                <img class="tab-favicon" src="" style="display:none;"> 
+                <div class="tab-title">Game</div>
+                <div class="tab-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </div>
+            `;
+
+            tabEl.addEventListener('click', (e) => {
+                if (this.suppressTabClick) return;
+                if (!e.target.closest('.tab-close')) {
+                    this.switchTab(id);
+                }
+            });
+
+            tabEl.addEventListener('mouseenter', () => this.showTabTooltip(tab));
+            tabEl.addEventListener('mouseleave', () => this.hideTabTooltip());
+            tabEl.addEventListener('mousemove', (e) => this.positionTabTooltip(e));
+
+            tabEl.querySelector('.tab-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeTab(id);
+            });
+
+            tab.element = tabEl;
+            this.attachTabDragHandlers(tab);
+            this.tabsContainer.insertBefore(tabEl, this.newTabBtn);
+
+            // Create direct iframe (no proxy)
+            const iframe = document.createElement('iframe');
+            iframe.src = htmlUrl;
+            iframe.classList.add('browser-viewport', 'active');
+            iframe.style.border = 'none';
+            iframe.width = '100%';
+            iframe.style.position = 'absolute';
+            iframe.allow = "accelerometer autoplay camera clipboard-read clipboard-write display-capture encrypted-media fullscreen gamepad geolocation gyroscope microphone midi payment picture-in-picture publickey-credentials-get screen-wake-lock speaker-selection usb web-share xr-spatial-tracking";
+            iframe.setAttribute('allowfullscreen', 'true');
+            
+            tab.iframe = iframe;
+            this.viewportsContainer.appendChild(iframe);
+
+            // Create home element
+            const homeEl = document.createElement('div');
+            homeEl.className = 'home-page hidden';
+            this.viewportsContainer.appendChild(homeEl);
+            tab.homeElement = homeEl;
+
+            this.tabs.push(tab);
+            this.switchTab(id);
+            
+            // Update UI
             this.omnibox.value = '';
             this.omnibox.placeholder = 'Playing game...';
-        }, 500);
+        }
     }
 
     switchTab(id) {
