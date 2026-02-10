@@ -1589,34 +1589,9 @@ class Browser {
         try {
             console.log('[BROWSER] Loading HTML game from:', htmlUrl);
 
-            // Check if it's a local file (relative path)
-            const isLocalFile = !htmlUrl.startsWith('http://') && !htmlUrl.startsWith('https://');
-
-            if (isLocalFile) {
-                // For local files, load directly in iframe
-                console.log('[BROWSER] Loading local file directly');
-                this.createTab(htmlUrl);
-                return;
-            }
-
-            // For remote files, fetch and use blob URL
-            const response = await fetch(htmlUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            const htmlContent = await response.text();
-
-            console.log('[BROWSER] HTML content loaded, length:', htmlContent.length);
-
-            // Create a blob URL from the HTML content first
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const blobUrl = URL.createObjectURL(blob);
-
-            console.log('[BROWSER] Blob URL created:', blobUrl);
-
-            // Create a new tab with the blob URL (this will trigger navigate() and create iframe)
-            this.createTab(blobUrl);
-
+            // Create the tab first
+            this.createTab(htmlUrl);
+            
             // Get the newly created tab (it's the last one and should be active)
             const tab = this.tabs[this.tabs.length - 1];
 
@@ -1624,21 +1599,17 @@ class Browser {
                 throw new Error('Failed to create tab');
             }
 
-            // Update tab metadata
-            tab.title = 'Game';
-            tab.isGame = true; // Mark as game tab
-            const tabTitleEl = tab.element.querySelector('.tab-title');
-            if (tabTitleEl) tabTitleEl.textContent = tab.title;
-
-            // Clear the omnibox
-            this.omnibox.value = '';
-            this.omnibox.placeholder = 'Playing game...';
-
-            // Clean up the blob URL after a delay (give it time to load)
+            // Mark as game tab AFTER creation but update UI immediately
             setTimeout(() => {
-                console.log('[BROWSER] Cleaning up blob URL');
-                URL.revokeObjectURL(blobUrl);
-            }, 5000);
+                tab.isGame = true;
+                tab.title = 'Game';
+                const tabTitleEl = tab.element.querySelector('.tab-title');
+                if (tabTitleEl) tabTitleEl.textContent = tab.title;
+
+                // Clear the omnibox
+                this.omnibox.value = '';
+                this.omnibox.placeholder = 'Playing game...';
+            }, 100);
 
         } catch (error) {
             console.error('[BROWSER] Failed to load HTML game:', error);
