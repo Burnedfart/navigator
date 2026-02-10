@@ -1585,37 +1585,23 @@ class Browser {
         }
     }
 
-    async loadHtmlGame(htmlUrl) {
-        try {
-            console.log('[BROWSER] Loading HTML game from:', htmlUrl);
-
-            // Create the tab first
-            this.createTab(htmlUrl);
-            
-            // Get the newly created tab (it's the last one and should be active)
-            const tab = this.tabs[this.tabs.length - 1];
-
-            if (!tab) {
-                throw new Error('Failed to create tab');
-            }
-
-            // Mark as game tab AFTER creation but update UI immediately
-            setTimeout(() => {
-                tab.isGame = true;
-                tab.title = 'Game';
-                const tabTitleEl = tab.element.querySelector('.tab-title');
-                if (tabTitleEl) tabTitleEl.textContent = tab.title;
-
-                // Clear the omnibox
-                this.omnibox.value = '';
-                this.omnibox.placeholder = 'Playing game...';
-            }, 100);
-
-        } catch (error) {
-            console.error('[BROWSER] Failed to load HTML game:', error);
-            console.error('[BROWSER] URL was:', htmlUrl);
-            this.showError(`Failed to load game: ${error.message}`);
-        }
+    loadHtmlGame(htmlUrl) {
+        // Load the game URL like any other site
+        this.createTab(htmlUrl);
+        
+        // Get the newly created tab
+        const tab = this.tabs[this.tabs.length - 1];
+        if (!tab) return;
+        
+        // Mark as game and update UI after a short delay to let navigation start
+        setTimeout(() => {
+            tab.isGame = true;
+            tab.title = 'Game';
+            const tabTitleEl = tab.element.querySelector('.tab-title');
+            if (tabTitleEl) tabTitleEl.textContent = 'Game';
+            this.omnibox.value = '';
+            this.omnibox.placeholder = 'Playing game...';
+        }, 500);
     }
 
     switchTab(id) {
@@ -1882,28 +1868,25 @@ class Browser {
         // UI Updates
         this.updateBookmarkButtonState();
 
-        // Update UI differently for game tabs
-        if (!tab.isGame) {
-            if (url === 'browser://home') {
-                tab.title = 'New Tab';
-                this.omnibox.value = '';
-                this.omnibox.placeholder = 'Search or enter address';
-            } else {
-                try {
-                    tab.title = new URL(url).hostname || 'Browse';
-                } catch (e) {
-                    tab.title = 'Browse';
-                }
-                this.omnibox.value = url;
-                this.omnibox.placeholder = 'Search or enter address';
+        if (url === 'browser://home') {
+            tab.title = 'New Tab';
+            this.omnibox.value = '';
+            this.omnibox.placeholder = 'Search or enter address';
+        } else {
+            try {
+                tab.title = new URL(url).hostname || 'Browse';
+            } catch (e) {
+                tab.title = 'Browse';
             }
-
-            const tabTitleEl = tab.element.querySelector('.tab-title');
-            if (tabTitleEl) tabTitleEl.textContent = tab.title;
-
-            // Update Favicon
-            this.fetchFavicon(tab, url);
+            this.omnibox.value = url;
+            this.omnibox.placeholder = 'Search or enter address';
         }
+
+        const tabTitleEl = tab.element.querySelector('.tab-title');
+        if (tabTitleEl) tabTitleEl.textContent = tab.title;
+
+        // Update Favicon
+        this.fetchFavicon(tab, url);
 
         if (url === 'browser://home') {
             if (tab.iframe) tab.iframe.classList.remove('active');
@@ -2127,8 +2110,8 @@ class Browser {
 
             // If we are on the home page and not currently transitioning out of it, skip sync
             if (tab.url === 'browser://home' && tab.homeElement && !tab.homeElement.classList.contains('hidden')) return;
-
-            // Don't sync game tabs
+            
+            // Don't sync UI for game tabs
             if (tab.isGame) return;
 
             const iframeWindow = tab.iframe.contentWindow;
