@@ -181,10 +181,28 @@ async function handleRequest(event) {
     // BYPASS: Health check and diagnostic endpoints should never be proxied
     if (url.includes('/api/health') || (url.includes('/wisp/') && event.request.method === 'GET')) {
         console.log('SW: 🔓 Bypassing proxy for health check:', url);
+        
+        // Handle OPTIONS preflight
+        if (event.request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Max-Age': '86400'
+                }
+            });
+        }
+        
         // Pass through directly without any proxy intervention
         try {
-            const response = await fetch(event.request);
-            // Add CORS headers to allow cross-origin health checks
+            const response = await fetch(event.request, {
+                mode: 'cors',
+                credentials: 'omit'
+            });
+            
+            // Clone response and add CORS headers
             const headers = new Headers(response.headers);
             headers.set('Access-Control-Allow-Origin', '*');
             headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -197,8 +215,13 @@ async function handleRequest(event) {
             });
         } catch (err) {
             console.error('SW: ❌ Health check bypass failed:', err);
-            // Return error with CORS headers
-            return new Response(JSON.stringify({ error: err.message }), {
+            // Return a synthetic response with CORS headers
+            // This allows the health check to fail gracefully without CORS errors
+            return new Response(JSON.stringify({ 
+                error: 'Health check failed',
+                message: err.message,
+                note: 'This is expected if the server does not support CORS. WebSocket may still work.'
+            }), {
                 status: 500,
                 headers: {
                     'Content-Type': 'application/json',
