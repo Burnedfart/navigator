@@ -32,7 +32,7 @@ Object.setPrototypeOf(self.Response, OriginalResponse);
 self.Response.prototype = OriginalResponse.prototype;
 
 // Persistent cache for app assets
-const CACHE_NAME = 'navigator-app-cache-v2026.02.05.1';
+const CACHE_NAME = 'navigator-app-cache-v2026.02.09.1';
 
 try {
     importScripts("./lib/scramjet/scramjet.all.js");
@@ -179,7 +179,7 @@ async function handleRequest(event) {
     const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
 
     // BYPASS: Health check and diagnostic endpoints should never be proxied
-    if (url.includes('/api/health') || url.includes('/wisp/') && event.request.method === 'GET') {
+    if (url.includes('/api/health') || (url.includes('/wisp/') && event.request.method === 'GET')) {
         // Pass through directly without any proxy intervention
         try {
             const response = await fetch(event.request);
@@ -374,7 +374,7 @@ self.addEventListener('message', async (event) => {
         console.log('SW: 🔄 Config invalidated and DB handle closed');
     } else if (event.data?.type === 'get_version') {
         if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage('2026.02.05.1');
+            event.ports[0].postMessage('2026.02.09.1');
         }
     }
 });
