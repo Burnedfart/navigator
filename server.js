@@ -124,6 +124,7 @@ httpServer.on("request", (req, res) => {
 // Allowed origins for WISP connections
 const ALLOWED_WISP_ORIGINS = [
     'https://education.scholarnavigator.top',
+    'https://burnedfart.github.io',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'null' // For about:blank iframes - they send origin as 'null'
@@ -144,6 +145,7 @@ function isOriginAllowed(req) {
         // Check if referer starts with any allowed origin
         const allowedDomains = [
             'https://education.scholarnavigator.top',
+            'https://burnedfart.github.io',
             'http://localhost:3000',
             'http://127.0.0.1:3000'
         ];
