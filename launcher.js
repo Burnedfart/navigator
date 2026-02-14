@@ -1,7 +1,7 @@
 (function () {
     window.launch = function () {
-        // Use current origin to load the proxy (consolidated into same repo)
-        const url = window.location.origin + "/index.html";
+        // Use GitHub Pages URL directly (works even when embedded in iframes)
+        const url = "https://burnedfart.github.io/navigator/index.html";
 
         // 1. Open a clean about:blank window
         const win = window.open("", "_blank");
