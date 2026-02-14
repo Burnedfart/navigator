@@ -178,8 +178,11 @@ async function handleRequest(event) {
     const fetchDest = event.request.headers.get('Sec-Fetch-Dest');
     const isIframe = fetchDest === 'iframe' || fetchDest === 'embed';
 
-    // BYPASS: Health check and diagnostic endpoints should never be proxied
-    if (url.includes('/api/health') || (url.includes('/wisp/') && event.request.method === 'GET')) {
+    // BYPASS: Health check endpoints should never be proxied
+    // WebSocket connections should NEVER be intercepted by the service worker
+    const isWebSocket = event.request.headers.get('Upgrade')?.toLowerCase() === 'websocket';
+
+    if (url.includes('/api/health')) {
         console.log('SW: 🔓 Bypassing proxy for health check:', url);
 
         // Handle OPTIONS preflight
@@ -229,6 +232,12 @@ async function handleRequest(event) {
                 }
             });
         }
+    }
+
+    // CRITICAL: WebSocket connections must bypass the service worker entirely
+    if (isWebSocket) {
+        console.log('SW: 🔌 WebSocket detected - bypassing service worker:', url);
+        return fetch(event.request);
     }
 
     // If scramjet hasn't been initialized yet, pass through all requests
